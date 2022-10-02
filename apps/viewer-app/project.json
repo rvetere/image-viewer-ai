@@ -1,0 +1,69 @@
+{
+  "name": "viewer-app",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/viewer-app/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "rocket-monkey-nx-electron:build",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/viewer-app",
+        "main": "apps/viewer-app/src/main.ts",
+        "tsConfig": "apps/viewer-app/tsconfig.app.json",
+        "assets": ["apps/viewer-app/src/assets"]
+      },
+      "configurations": {
+        "production": {
+          "optimization": true,
+          "extractLicenses": true,
+          "inspect": false,
+          "fileReplacements": [
+            {
+              "replace": "apps/viewer-app/src/environments/environment.ts",
+              "with": "apps/viewer-app/src/environments/environment.prod.ts"
+            }
+          ]
+        }
+      }
+    },
+    "serve": {
+      "executor": "rocket-monkey-nx-electron:execute",
+      "options": {
+        "buildTarget": "viewer-app:build"
+      }
+    },
+    "package": {
+      "executor": "rocket-monkey-nx-electron:package",
+      "options": {
+        "name": "viewer-app",
+        "frontendProject": "viewer-web",
+        "outputPath": "dist/packages",
+        "prepackageOnly": true
+      }
+    },
+    "make": {
+      "executor": "rocket-monkey-nx-electron:make",
+      "options": {
+        "name": "viewer-app",
+        "frontendProject": "viewer-web",
+        "outputPath": "dist/executables"
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["apps/viewer-app/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/apps/viewer-app"],
+      "options": {
+        "jestConfig": "apps/viewer-app/jest.config.ts",
+        "passWithNoTests": true
+      }
+    }
+  }
+}

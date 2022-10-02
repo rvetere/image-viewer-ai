@@ -51,5 +51,8 @@
       }
     }
   },
-  "defaultProject": "viewer-web"
+  "defaultProject": "viewer-web",
+  "cli": {
+    "defaultCollection": "nx-electron"
+  }
 }
