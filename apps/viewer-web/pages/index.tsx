@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import * as nsfwjs from 'nsfwjs';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   BrowseResponse,
   ImageWithDefinitions,
@@ -206,6 +206,23 @@ export function Index() {
         return false;
       } else if (filter === 'sexyOnly') {
         return isSexy && neutral.probability < 0.3;
+      } else {
+        // word filter
+        const nudity = nudityMap.get(
+          image.resizedDataUrl ? image.resizedDataUrl : image.src
+        );
+        if (nudity) {
+          const check =
+            nudity.output &&
+            nudity.output.detections.find((d) => d.name.includes(filter));
+          return (
+            isSexy &&
+            neutral.probability < 0.3 &&
+            check &&
+            parseFloat(check.confidence) > 0.67
+          );
+        }
+        return false;
       }
     },
     [filter]
@@ -286,6 +303,37 @@ export function Index() {
   const [showBoundingBox, setShowBoundingBox] = useState(true);
   const toggleShowBoundingBox = () => setShowBoundingBox(!showBoundingBox);
 
+  const handleNudityFilter = (word: string) => () => {
+    setFilter(word);
+  };
+
+  const wordCloud = useMemo<{ [name: string]: number }>(() => {
+    const cloud: { [name: string]: number } = {};
+    images
+      .filter(filterFn)
+      .map((image) => {
+        const nudity = nudityMap.get(
+          image.resizedDataUrl ? image.resizedDataUrl : image.src
+        );
+        return {
+          ...image,
+          ...nudity,
+        };
+      })
+      .map((image) => {
+        return [...((image.output && image.output.detections) || [])];
+      })
+      .filter((out) => !!out)
+      .forEach((out) => {
+        out.forEach((detection) => {
+          cloud[detection.name] =
+            (cloud[detection.name] || 0) + parseFloat(detection.confidence);
+        });
+      });
+    return cloud;
+  }, [images]);
+  console.log({ wordCloud, filter });
+
   return (
     <div className={classNames(styles.page, { [styles.working]: working })}>
       <div className={styles.navigation}>
@@ -333,6 +381,25 @@ export function Index() {
         {count > 0 && filter === 'sexyOnly' && (
           <button onClick={handleNudityApi(nudityMap)}>Run Nudity API</button>
         )}
+        {Object.entries(wordCloud)
+          .sort(([_aName, aConfidence], [_bName, bConfidence]) => {
+            return bConfidence - aConfidence;
+          })
+          .map(([name, _confidence]) => {
+            console.log({ _confidence });
+
+            return (
+              <button
+                key={name}
+                onClick={handleNudityFilter(name)}
+                className={classNames({
+                  [styles.active]: filter === name,
+                })}
+              >
+                {name}
+              </button>
+            );
+          })}
 
         <span>{count}x</span>
       </div>
@@ -354,6 +421,8 @@ export function Index() {
               return sortWithFilter('buttocks')(a, b);
             } else if (filter === 'breastsOnly') {
               return sortWithFilter('breast')(a, b);
+            } else if (filter !== 'all' && filter !== 'sexyOnly') {
+              return sortWithFilter(filter)(a, b);
             }
             return 0;
           })
