@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import * as nsfwjs from 'nsfwjs';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   BrowseResponse,
   ImageWithDefinitions,
@@ -50,8 +50,12 @@ export function Index() {
     if (nudityMap.size > 0) {
       const serialize = {};
       for (const [key, value] of nudityMap.entries()) {
-        serialize[key] = value;
+        if (value && typeof value !== 'string') {
+          serialize[key] = value;
+        }
       }
+      console.log('Save new nudityMap: ', Object.keys(serialize).length);
+
       localStorage.setItem('nudityMap', JSON.stringify(serialize));
     }
   }, [nudityMap]);
@@ -85,7 +89,6 @@ export function Index() {
       console.log({ dir, len: imagePaths.length });
 
       const batches = getBatches(imagePaths);
-
       const batchCount = batches.length;
       console.log(`Got ${batchCount} batches of ${BATCH_SIZE}`);
       const existingData = localStorage.getItem('images')
@@ -139,6 +142,7 @@ export function Index() {
       }
 
       setImages(imagesWithDefsFinal);
+      setCount(imagesWithDefsFinal.length);
 
       setWorking(false);
       setProgress(0);
@@ -147,14 +151,133 @@ export function Index() {
   };
 
   const [filter, setFilter] = useState('all');
+  const filterFn = useCallback(
+    (image) => {
+      const neutral = image.predictions.find((p) => p.className === 'Neutral');
+      const sexy = image.predictions.find((p) => p.className === 'Sexy');
+      const hentai = image.predictions.find((p) => p.className === 'Hentai');
+      const porn = image.predictions.find((p) => p.className === 'Porn');
+      const isSexy =
+        (sexy && sexy.probability >= 0.4) ||
+        (hentai && hentai.probability >= 0.4) ||
+        (porn && porn.probability >= 0.4);
+
+      if (filter === 'all') {
+        return true;
+      } else if (filter === 'buttocksOnly') {
+        const nudity = nudityMap.get(
+          image.resizedDataUrl ? image.resizedDataUrl : image.src
+        );
+        if (nudity) {
+          const check =
+            nudity.output &&
+            nudity.output.detections.find((d) =>
+              d.name.toLowerCase().includes('buttocks')
+            );
+          return (
+            isSexy &&
+            neutral.probability < 0.3 &&
+            check &&
+            parseFloat(check.confidence) > 0.67
+          );
+        }
+        return false;
+      } else if (filter === 'breastsOnly') {
+        const nudity = nudityMap.get(
+          image.resizedDataUrl ? image.resizedDataUrl : image.src
+        );
+        if (nudity) {
+          const check =
+            nudity.output &&
+            nudity.output.detections
+              .sort(
+                (a, b) => parseFloat(b.confidence) - parseFloat(a.confidence)
+              )
+              .find((d) => d.name.toLowerCase().includes('breast'));
+          return (
+            isSexy &&
+            neutral.probability < 0.3 &&
+            nudity.output &&
+            nudity.output.nsfw_score > 0.67 &&
+            check &&
+            parseFloat(check.confidence) > 0.67
+          );
+        }
+        return false;
+      } else if (filter === 'sexyOnly') {
+        return isSexy && neutral.probability < 0.3;
+      }
+    },
+    [filter]
+  );
+  const sortWithFilter =
+    (search: string) => (a: ImageWithDefinitions, b: ImageWithDefinitions) => {
+      const aNudity = nudityMap.get(
+        a.resizedDataUrl ? a.resizedDataUrl : a.src
+      );
+      const bNudity = nudityMap.get(
+        b.resizedDataUrl ? b.resizedDataUrl : b.src
+      );
+      if (aNudity && bNudity) {
+        const aCheck = aNudity.output.detections.find((d) =>
+          d.name.toLowerCase().includes(search)
+        );
+        const bCheck = bNudity.output.detections.find((d) =>
+          d.name.toLowerCase().includes(search)
+        );
+        if (aCheck && bCheck) {
+          return parseFloat(bCheck.confidence) - parseFloat(aCheck.confidence);
+        }
+      }
+    };
+  const [count, setCount] = useState(images.length);
   const handleFilterSexyOnly = () => {
-    setFilter(filter === 'all' ? 'sexyOnly' : 'all');
+    setFilter(filter === 'sexyOnly' ? 'all' : 'sexyOnly');
   };
+  const handleFilterButtocksOnly = () => {
+    setFilter(filter === 'buttocksOnly' ? 'all' : 'buttocksOnly');
+  };
+  const handleFilterBreastsOnly = () => {
+    setFilter(filter === 'breastsOnly' ? 'all' : 'breastsOnly');
+  };
+  useEffect(() => {
+    setCount(images.filter(filterFn).length);
+  }, [filter, images.length]);
+
+  const handleNudityApi = () => {
+    setWorking(true);
+    const toFetch = images
+      .filter(filterFn)
+      .filter(
+        (image) =>
+          !nudityMap.get(
+            image.resizedDataUrl ? image.resizedDataUrl : image.src
+          )
+      )
+      .map((image) =>
+        image.resizedDataUrl ? image.resizedDataUrl : image.src
+      );
+    console.log({ toFetch });
+    // @ts-expect-error bla
+    window.electron.nudityAiBulk(toFetch).then((results) => {
+      const newNudityMap = new Map<string, NudityResponse>(nudityMap);
+      toFetch.forEach((src, index) => {
+        const result = results[index];
+        newNudityMap.set(src, result);
+      });
+      setNudityMap(newNudityMap);
+
+      setWorking(false);
+    });
+  };
+
+  const [showBoundingBox, setShowBoundingBox] = useState(true);
+  const toggleShowBoundingBox = () => setShowBoundingBox(!showBoundingBox);
 
   return (
     <div className={classNames(styles.page, { [styles.working]: working })}>
       <div>
-        {progress > 0 && <span>{progress}%</span>}
+        {progress > 0 && <div style={{ marginRight: 8 }}>{progress}%</div>}
         {model && <button onClick={handleBrowse}>Browse</button>}
         {images.length > 0 && (
           <button
@@ -164,33 +287,46 @@ export function Index() {
             Sexy only
           </button>
         )}
+        {images.length > 0 && (
+          <button
+            onClick={handleFilterButtocksOnly}
+            className={classNames({
+              [styles.active]: filter === 'buttocksOnly',
+            })}
+          >
+            Buttocks only
+          </button>
+        )}
+        {images.length > 0 && (
+          <button
+            onClick={handleFilterBreastsOnly}
+            className={classNames({
+              [styles.active]: filter === 'breastsOnly',
+            })}
+          >
+            Breasts only
+          </button>
+        )}
+        {images.length > 0 && (
+          <button
+            onClick={toggleShowBoundingBox}
+            className={classNames({
+              [styles.active]: showBoundingBox,
+            })}
+          >
+            Show bounding box
+          </button>
+        )}
+
+        {count > 0 && filter === 'sexyOnly' && (
+          <button onClick={handleNudityApi}>Run Nudity API</button>
+        )}
+
+        <span>{count}x</span>
       </div>
       <div className={styles.list}>
         {images
-          .filter((image) => {
-            if (filter === 'all') {
-              return true;
-            } else if (filter === 'sexyOnly') {
-              const neutral = image.predictions.find(
-                (p) => p.className === 'Neutral'
-              );
-              const sexy = image.predictions.find(
-                (p) => p.className === 'Sexy'
-              );
-              const hentai = image.predictions.find(
-                (p) => p.className === 'Hentai'
-              );
-              const porn = image.predictions.find(
-                (p) => p.className === 'Porn'
-              );
-              const isSexy = (sexy && sexy.probability >= 0.4) ||
-              (hentai && hentai.probability >= 0.4) ||
-              (porn && porn.probability >= 0.4)
-              return (
-                isSexy && neutral.probability < 0.3
-              );
-            }
-          })
+          .filter(filterFn)
           .sort((a, b) => {
             const sizeA = a.size.width * a.size.height;
             const sizeB = b.size.width * b.size.height;
@@ -201,12 +337,21 @@ export function Index() {
             }
             return 0;
           })
+          .sort((a, b) => {
+            if (filter === 'buttocksOnly') {
+              return sortWithFilter('buttocks')(a, b);
+            } else if (filter === 'breastsOnly') {
+              return sortWithFilter('breast')(a, b);
+            }
+            return 0;
+          })
           .map((image, index) => (
             <LocalImage
               key={`image-${index}`}
               image={image}
               nudityMap={nudityMap}
               setNudityMap={setNudityMap}
+              showBoundingBox={showBoundingBox}
             />
           ))}
       </div>

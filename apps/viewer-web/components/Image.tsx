@@ -17,6 +17,7 @@ export type ImageWithDefinitions = BrowseResponse & {
 
 type LocalImageProps = {
   image: ImageWithDefinitions;
+  showBoundingBox: boolean;
   nudityMap: Map<string, NudityResponse>;
   setNudityMap: Dispatch<SetStateAction<Map<string, NudityResponse>>>;
 };
@@ -49,6 +50,7 @@ const getBoundingBoxColor = (index: number) => {
 
 export const LocalImage: FC<LocalImageProps> = ({
   image,
+  showBoundingBox,
   nudityMap,
   setNudityMap,
 }) => {
@@ -56,7 +58,7 @@ export const LocalImage: FC<LocalImageProps> = ({
     threshold: 0,
   });
 
-  const [maxWidth, setMaxWidth] = useState(200);
+  const [maxWidth, setMaxWidth] = useState(600);
 
   const imgRef = useRef<HTMLImageElement>();
 
@@ -71,6 +73,8 @@ export const LocalImage: FC<LocalImageProps> = ({
           return newMap;
         });
       });
+    } else {
+      console.log(nudityMap.get(imagePath));
     }
   };
 
@@ -85,16 +89,21 @@ export const LocalImage: FC<LocalImageProps> = ({
     resized = true;
   }
 
-  const nudity = nudityMap.get(image.resizedDataUrl ? image.resizedDataUrl : image.src);
+  const nudity = nudityMap.get(
+    image.resizedDataUrl ? image.resizedDataUrl : image.src
+  );
 
   return (
     <div style={{ width, height }} className={styles.imageContainer}>
-      {nudity &&
+      {showBoundingBox &&
+        nudity &&
+        nudity.output &&
         nudity.output.detections.map((detection, index) => (
           <div
             key={`box-${index}`}
             className={styles.boundingBox}
             style={{
+              pointerEvents: 'none',
               position: 'absolute',
               border: `1px solid ${getBoundingBoxColor(index)}`,
               left: detection.bounding_box[0] * ratio,
@@ -103,7 +112,10 @@ export const LocalImage: FC<LocalImageProps> = ({
               height: detection.bounding_box[3] * ratio,
             }}
           >
-            <span>{detection.name}</span>
+            <span>
+              {detection.name}
+              <sup>{detection.confidence}</sup>
+            </span>
           </div>
         ))}
       <img

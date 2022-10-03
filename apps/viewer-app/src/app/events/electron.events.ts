@@ -34,6 +34,37 @@ ipcMain.handle('nudity-ai', async (event, path) => {
   return result;
 });
 
+ipcMain.handle('nudity-ai-bulk', async (event, paths) => {
+  console.log(`Fetching nudity DeepAI: "${paths.length}"`);
+
+  const promises = paths.map(async (path) => {
+    try {
+      const result = await deepAi.callStandardApi('content-moderation', {
+        image: fs.createReadStream(path),
+      });
+      console.log({ result });
+      await sleep(5000);
+
+      return result;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  const results = await Promise.all(promises);
+  console.log('Finished fetching nudity API..');
+
+  return results;
+});
+
+const sleep = (time: number): Promise<void> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve();
+    }, time);
+  });
+};
+
 // Handle App termination
 ipcMain.on('quit', (event, code) => {
   app.exit(code);
