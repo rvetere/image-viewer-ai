@@ -9,6 +9,8 @@ import {
 } from '../components/Image';
 import styles from './index.module.css';
 
+const BATCH_SIZE = 2;
+
 type ImageDef = {
   width: number;
   height: number;
@@ -68,26 +70,35 @@ export function Index() {
   }, []);
 
   const [working, setWorking] = useState(false);
-  // const [calculateProgress, setCalculateProgress] = useState(0);
-  // const throttledSetCalcProgress = useCallback(
-  //   throttle((p: number) => setCalculateProgress(p), 25),
-  //   []
-  // );
-  // console.log({ calculateProgress });
+  const [progress, setProgress] = useState(0);
 
   const [images, setImages] = useState<ImageWithDefinitions[]>([]);
   const handleBrowse = () => {
     setWorking(true)
     // @ts-expect-error bla
-    window.electron.browse().then((imagePaths: BrowseResponse[]) => {
-      const promises = imagePaths.map(async (imagePath, index) => {
-        const imageDefs = await getImageDef(imagePath, model);
+    window.electron.browse().then(async (imagePaths) => {
+      console.log({ len: imagePaths.length });
 
-        return imageDefs;
-      });
+      const batches = getBatches(imagePaths);
+      let imagesWithDefsFinal = [];
 
-      Promise.all(promises).then((imageDefs) => {
-        const imagesWithDefs = imagePaths.map((imagePath, index) => {
+      const batcheCount = batches.length;
+      console.log(`Got ${batcheCount} batches of ${BATCH_SIZE}`);
+      while (batches.length) {
+        const batch = batches.shift();
+        setProgress((100 * (batcheCount - batches.length)) / batcheCount);
+        console.log(`Fetch info for batch, ${progress}%..`);
+
+        const promises = batch.map(async (imagePath, index) => {
+          const imageDefs = await getImageDef(imagePath, model);
+
+          return imageDefs;
+        });
+
+        const imageDefs = await Promise.all(promises);
+        console.log('Got image defs of batch..', { imageDefs });
+
+        const imagesWithDefs = batch.map((imagePath, index) => {
           const defs = imageDefs[index];
           return {
             src: imagePath.src,
@@ -95,22 +106,29 @@ export function Index() {
             ...defs,
           };
         });
-        setImages(imagesWithDefs);
+        imagesWithDefsFinal = [...imagesWithDefsFinal, ...imagesWithDefs];
 
-        setWorking(false);
-        console.log('finished processing!', { imagesWithDefs });
-      });
+        console.log('Sleep 800 miliseconds until next batch..');
+        await sleep(800);
+      }
+
+      setImages(imagesWithDefsFinal);
+
+      setWorking(false);
+      setProgress(0);
+      console.log('finished processing!', { imagesWithDefsFinal });
     });
   };
 
   const [filter, setFilter] = useState('all');
   const handleFilterSexyOnly = () => {
-    setFilter('sexyOnly');
+    setFilter(filter === 'all' ? 'sexyOnly' : 'all');
   };
 
   return (
     <div className={classNames(styles.page, { [styles.working]: working })}>
       <div>
+        {progress > 0 && <span>{progress}%</span>}
         {model && <button onClick={handleBrowse}>Browse</button>}
         {images.length > 0 && (
           <button
@@ -165,5 +183,23 @@ export function Index() {
     </div>
   );
 }
+
+const getBatches = (paths: BrowseResponse[]) => {
+  const batches: BrowseResponse[][] = [];
+  while (paths.length) {
+    const limit = paths.length >= BATCH_SIZE ? BATCH_SIZE : paths.length;
+    const batch = paths.splice(0, limit);
+    batches.push(batch);
+  }
+  return batches;
+};
+
+const sleep = (time: number): Promise<void> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve();
+    }, time);
+  });
+};
 
 export default Index;
