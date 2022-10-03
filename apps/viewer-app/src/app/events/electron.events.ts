@@ -43,7 +43,7 @@ ipcMain.handle('nudity-ai-bulk', async (event, paths) => {
         image: fs.createReadStream(path),
       });
       console.log({ result });
-      await sleep(5000);
+      await sleep(1500);
 
       return result;
     } catch (e) {
