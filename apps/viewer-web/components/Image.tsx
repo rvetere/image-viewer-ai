@@ -1,19 +1,13 @@
 /* eslint-disable @next/next/no-img-element */
 import classNames from 'classnames';
 import * as nsfwjs from 'nsfwjs';
-import {
-  Dispatch,
-  FC,
-  Fragment,
-  SetStateAction,
-  useRef,
-  useState,
-} from 'react';
+import { Dispatch, FC, SetStateAction, useRef, useState } from 'react';
 import { useInView } from 'react-intersection-observer';
 import styles from './Image.module.css';
 
-export type ImageWithDefinitions = {
-  src: string;
+export type BrowseResponse = { src: string; resizedDataUri?: string };
+
+export type ImageWithDefinitions = BrowseResponse & {
   width: number;
   height: number;
   predictions: nsfwjs.predictionType[];
@@ -111,7 +105,9 @@ export const LocalImage: FC<LocalImageProps> = ({
         ))}
       <img
         ref={imgRef}
-        src={`file://${image.src}`}
+        src={
+          image.resizedDataUri ? image.resizedDataUri : `file://${image.src}`
+        }
         style={{ maxWidth: width }}
         loading="lazy"
         alt={image.src}

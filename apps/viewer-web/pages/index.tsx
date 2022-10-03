@@ -2,6 +2,7 @@ import classNames from 'classnames';
 import * as nsfwjs from 'nsfwjs';
 import { useEffect, useState } from 'react';
 import {
+  BrowseResponse,
   ImageWithDefinitions,
   LocalImage,
   NudityResponse,
@@ -14,7 +15,7 @@ type ImageDef = {
   predictions: nsfwjs.predictionType[];
 };
 
-const getImageDef = (image: string, model: nsfwjs.NSFWJS) => {
+const getImageDef = (image: BrowseResponse, model: nsfwjs.NSFWJS) => {
   return new Promise((resolve: (value: ImageDef) => void, reject) => {
     const img = new Image();
 
@@ -30,7 +31,9 @@ const getImageDef = (image: string, model: nsfwjs.NSFWJS) => {
         });
     };
 
-    img.src = `file://${image}`;
+    img.src = image.resizedDataUri
+      ? image.resizedDataUri
+      : `file://${image.src}`;
   });
 };
 
@@ -75,8 +78,7 @@ export function Index() {
   const [images, setImages] = useState<ImageWithDefinitions[]>([]);
   const handleBrowse = () => {
     // @ts-expect-error bla
-    window.electron.browse().then((imagePaths) => {
-      // setImages(imagePaths);
+    window.electron.browse().then((imagePaths: BrowseResponse[]) => {
       setWorking(true);
 
       const promises = imagePaths.map(async (imagePath, index) => {
@@ -89,7 +91,8 @@ export function Index() {
         const imagesWithDefs = imagePaths.map((imagePath, index) => {
           const defs = imageDefs[index];
           return {
-            src: imagePath,
+            src: imagePath.src,
+            resizedDataUri: imagePath.resizedDataUri,
             ...defs,
           };
         });

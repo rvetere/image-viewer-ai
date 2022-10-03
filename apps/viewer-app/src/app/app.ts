@@ -2,6 +2,7 @@ import { BrowserWindow, shell, screen, ipcMain, dialog } from 'electron';
 import { rendererAppName, rendererAppPort } from './constants';
 import { environment } from '../environments/environment';
 import { join } from 'path';
+import { nativeImage } from 'electron';
 import { format } from 'url';
 import * as fg from 'fast-glob';
 
@@ -74,18 +75,48 @@ export default class App {
         preload: join(__dirname, 'main.preload.js'),
       },
     });
-    App.mainWindow.webContents.openDevTools()
+    App.mainWindow.webContents.openDevTools();
     ipcMain.handle('browse', async (e) => {
       const path = await dialog.showOpenDialog({
         properties: ['openDirectory'],
       });
 
-      const pattern = `${path.filePaths[0]}\\**\\*.(jpg|jpeg|png|gif)`;
-      console.log({pattern: pattern.replace(/\\/ig, '/')});
+      const pattern = `${path.filePaths[0]}\\**\\*.(jpg|jpeg|png|gif)`.replace(
+        /\\/gi,
+        '/'
+      );
+      console.log({ pattern: pattern });
 
-      const entries = await fg([pattern.replace(/\\/ig, '/')], { dot: false });
+      const entries = await fg([pattern], { dot: false });
+      console.log(`Found ${entries.length} image files`);
+      let progress = 0;
+      const finalEntries = [];
+      for (let i = 0, len = entries.length; i < len; i++) {
+        const entry = entries[i];
+        const extension = entry.split('.').pop();
+        progress = (100 * i) / len;
+        console.log(`Progress: ${progress}%`);
 
-      return entries;
+        if (extension !== 'gif') {
+          const image = nativeImage.createFromPath(entry);
+          if (image.getSize().width > 300) {
+            image.resize({ width: 300 });
+            const dataUri = image.toDataURL();
+            finalEntries.push({
+              src: entry,
+              resizedDataUri: dataUri,
+            });
+            continue;
+          }
+        }
+        finalEntries.push({
+          src: entry,
+          resizedDataUri: undefined,
+        });
+      }
+      console.log('Processed all images');
+
+      return finalEntries;
     });
     App.mainWindow.setMenu(null);
     App.mainWindow.center();
