@@ -9,11 +9,10 @@ import {
 } from '../components/Image';
 import styles from './index.module.css';
 
-const BATCH_SIZE = 2;
+const BATCH_SIZE = 200;
 
 type ImageDef = {
-  width: number;
-  height: number;
+  size: { width: number; height: number };
   predictions: nsfwjs.predictionType[];
 };
 
@@ -25,16 +24,28 @@ const getImageDef = (image: BrowseResponse, model: nsfwjs.NSFWJS) => {
       model
         ?.classify(img)
         .then((predictions) => {
-          resolve({ width: img.width, height: img.height, predictions });
+          resolve({
+            predictions,
+            size:
+              image.size.width > 0
+                ? image.size
+                : { width: img.width, height: img.height },
+          });
         })
         .catch((e) => {
           console.error(e);
-          resolve({ width: img.width, height: img.height, predictions: [] });
+          resolve({
+            predictions: [],
+            size:
+              image.size.width > 0
+                ? image.size
+                : { width: img.width, height: img.height },
+          });
         });
     };
 
-    img.src = image.resizedDataUri
-      ? image.resizedDataUri
+    img.src = image.resizedDataUrl
+      ? `file://${image.resizedDataUrl}`
       : `file://${image.src}`;
   });
 };
@@ -74,7 +85,7 @@ export function Index() {
 
   const [images, setImages] = useState<ImageWithDefinitions[]>([]);
   const handleBrowse = () => {
-    setWorking(true)
+    setWorking(true);
     // @ts-expect-error bla
     window.electron.browse().then(async (imagePaths) => {
       console.log({ len: imagePaths.length });
@@ -82,12 +93,13 @@ export function Index() {
       const batches = getBatches(imagePaths);
       let imagesWithDefsFinal = [];
 
-      const batcheCount = batches.length;
-      console.log(`Got ${batcheCount} batches of ${BATCH_SIZE}`);
+      const batchCount = batches.length;
+      console.log(`Got ${batchCount} batches of ${BATCH_SIZE}`);
       while (batches.length) {
         const batch = batches.shift();
-        setProgress((100 * (batcheCount - batches.length)) / batcheCount);
-        console.log(`Fetch info for batch, ${progress}%..`);
+        const newProgress = (100 * (batchCount - batches.length)) / batchCount;
+        setProgress(newProgress);
+        console.log(`Fetch info for batch, ${newProgress}%..`);
 
         const promises = batch.map(async (imagePath, index) => {
           const imageDefs = await getImageDef(imagePath, model);
@@ -102,14 +114,15 @@ export function Index() {
           const defs = imageDefs[index];
           return {
             src: imagePath.src,
-            resizedDataUri: imagePath.resizedDataUri,
+            resizedDataUrl: imagePath.resizedDataUrl,
+            size: imagePath.size,
             ...defs,
           };
         });
         imagesWithDefsFinal = [...imagesWithDefsFinal, ...imagesWithDefs];
 
         console.log('Sleep 800 miliseconds until next batch..');
-        await sleep(800);
+        await sleep(200);
       }
 
       setImages(imagesWithDefsFinal);
@@ -162,8 +175,8 @@ export function Index() {
             }
           })
           .sort((a, b) => {
-            const sizeA = a.width * a.height;
-            const sizeB = b.width * b.height;
+            const sizeA = a.size.width * a.size.height;
+            const sizeB = b.size.width * b.size.height;
             if (sizeA > sizeB) {
               return -1;
             } else if (sizeA < sizeB) {

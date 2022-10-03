@@ -1,10 +1,14 @@
-import { BrowserWindow, shell, screen, ipcMain, dialog } from 'electron';
+import { BrowserWindow, shell, screen, ipcMain, dialog, app } from 'electron';
 import { rendererAppName, rendererAppPort } from './constants';
 import { environment } from '../environments/environment';
 import { join } from 'path';
 import { nativeImage } from 'electron';
 import { format } from 'url';
+import * as fs from 'fs';
 import * as fg from 'fast-glob';
+// const Store = require('electron-store');
+
+// const store = new Store();
 
 export default class App {
   // Keep a global reference of the window object, if you don't, the window will
@@ -89,6 +93,10 @@ export default class App {
 
       const entries = await fg([pattern], { dot: false });
       console.log(`Found ${entries.length} image files`);
+      const appDataPath = app.getPath('userData');
+      fs.mkdirSync(`${appDataPath}/image-viewer/resized`, { recursive: true });
+      console.log({ appDataPath });
+
       let progress = 0;
       const finalEntries = [];
       for (let i = 0, len = entries.length; i < len; i++) {
@@ -97,14 +105,20 @@ export default class App {
         progress = (100 * i) / len;
         console.log(`Progress: ${progress}%`);
 
+        const image = nativeImage.createFromPath(entry);
+        const size = image.getSize();
         if (extension !== 'gif') {
-          const image = nativeImage.createFromPath(entry);
-          if (image.getSize().width > 300) {
-            image.resize({ width: 300 });
-            const dataUri = image.toDataURL();
+          if (size.width > 600) {
+            const hash = hashCode(entry);
+            const targetPath = `${appDataPath}/image-viewer/resized/${hash}.jpg`;
+            if (!fs.existsSync(targetPath)) {
+              const newJpeg = image.resize({ width: 600 }).toJPEG(100);
+              fs.writeFileSync(targetPath, newJpeg);
+            }
             finalEntries.push({
               src: entry,
-              resizedDataUri: dataUri,
+              resizedDataUrl: targetPath,
+              size,
             });
             continue;
           }
@@ -112,8 +126,10 @@ export default class App {
         finalEntries.push({
           src: entry,
           resizedDataUri: undefined,
+          size,
         });
       }
+
       console.log('Processed all images');
 
       return finalEntries;
@@ -170,3 +186,16 @@ export default class App {
     App.application.on('activate', App.onActivate); // App is activated
   }
 }
+
+const hashCode = (input: string) => {
+  let hash = 0,
+    i,
+    chr;
+  if (input.length === 0) return hash;
+  for (i = 0; i < input.length; i++) {
+    chr = input.charCodeAt(i);
+    hash = (hash << 5) - hash + chr;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash;
+};

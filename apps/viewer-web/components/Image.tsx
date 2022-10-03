@@ -5,11 +5,13 @@ import { Dispatch, FC, SetStateAction, useRef, useState } from 'react';
 import { useInView } from 'react-intersection-observer';
 import styles from './Image.module.css';
 
-export type BrowseResponse = { src: string; resizedDataUri?: string };
+export type BrowseResponse = {
+  src: string;
+  resizedDataUrl?: string;
+  size: { width: number; height: number };
+};
 
 export type ImageWithDefinitions = BrowseResponse & {
-  width: number;
-  height: number;
   predictions: nsfwjs.predictionType[];
 };
 
@@ -54,7 +56,7 @@ export const LocalImage: FC<LocalImageProps> = ({
     threshold: 0,
   });
 
-  const [maxWidth, setMaxWidth] = useState(480);
+  const [maxWidth, setMaxWidth] = useState(600);
 
   const imgRef = useRef<HTMLImageElement>();
 
@@ -72,10 +74,11 @@ export const LocalImage: FC<LocalImageProps> = ({
     }
   };
 
+  const extension = image.src.split('.').pop();
   let resized = false;
-  let { width, height } = image;
+  let { width, height } = image.size;
   let ratio = 1;
-  if (width > maxWidth) {
+  if (width > maxWidth && extension !== 'gif') {
     height = (height / width) * maxWidth;
     ratio = maxWidth / width;
     width = maxWidth;
@@ -106,12 +109,16 @@ export const LocalImage: FC<LocalImageProps> = ({
       <img
         ref={imgRef}
         src={
-          image.resizedDataUri ? image.resizedDataUri : `file://${image.src}`
+          image.resizedDataUrl
+            ? `file://${image.resizedDataUrl}`
+            : `file://${image.src}`
         }
         style={{ maxWidth: width }}
         loading="lazy"
         alt={image.src}
-        className={classNames(styles.image, { [styles.resized]: resized })}
+        className={classNames(styles.image, {
+          [styles.resized]: resized || !!image.resizedDataUrl,
+        })}
         onClick={handleImgClick}
       />
 
