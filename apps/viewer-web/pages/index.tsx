@@ -77,10 +77,9 @@ export function Index() {
 
   const [images, setImages] = useState<ImageWithDefinitions[]>([]);
   const handleBrowse = () => {
+    setWorking(true)
     // @ts-expect-error bla
     window.electron.browse().then((imagePaths: BrowseResponse[]) => {
-      setWorking(true);
-
       const promises = imagePaths.map(async (imagePath, index) => {
         const imageDefs = await getImageDef(imagePath, model);
 
