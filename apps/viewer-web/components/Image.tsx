@@ -113,7 +113,7 @@ export const LocalImage: FC<LocalImageProps> = ({
             ? `file://${image.resizedDataUrl}`
             : `file://${image.src}`
         }
-        style={{ maxWidth: width }}
+        style={{ maxWidth: width + 2 }}
         loading="lazy"
         alt={image.src}
         className={classNames(styles.image, {

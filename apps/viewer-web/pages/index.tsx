@@ -26,20 +26,14 @@ const getImageDef = (image: BrowseResponse, model: nsfwjs.NSFWJS) => {
         .then((predictions) => {
           resolve({
             predictions,
-            size:
-              image.size.width > 0
-                ? image.size
-                : { width: img.width, height: img.height },
+            size: { width: img.width, height: img.height },
           });
         })
         .catch((e) => {
           console.error(e);
           resolve({
             predictions: [],
-            size:
-              image.size.width > 0
-                ? image.size
-                : { width: img.width, height: img.height },
+            size: { width: img.width, height: img.height },
           });
         });
     };
@@ -87,21 +81,30 @@ export function Index() {
   const handleBrowse = () => {
     setWorking(true);
     // @ts-expect-error bla
-    window.electron.browse().then(async (imagePaths) => {
-      console.log({ len: imagePaths.length });
+    window.electron.browse().then(async ([dir, imagePaths]) => {
+      console.log({ dir, len: imagePaths.length });
 
       const batches = getBatches(imagePaths);
-      let imagesWithDefsFinal = [];
 
       const batchCount = batches.length;
       console.log(`Got ${batchCount} batches of ${BATCH_SIZE}`);
+      const existingData = localStorage.getItem('images')
+        ? JSON.parse(localStorage.getItem('images'))
+        : {};
+      const existingDefs = existingData[dir] || [];
+      let imagesWithDefsFinal = existingDefs;
       while (batches.length) {
         const batch = batches.shift();
         const newProgress = (100 * (batchCount - batches.length)) / batchCount;
         setProgress(newProgress);
         console.log(`Fetch info for batch, ${newProgress}%..`);
 
-        const promises = batch.map(async (imagePath, index) => {
+        const notFetched = batch.filter(
+          (imagePath) => !existingDefs.find((def) => def.src === imagePath.src)
+        );
+        console.log({ notFetched });
+
+        const promises = notFetched.map(async (imagePath) => {
           const imageDefs = await getImageDef(imagePath, model);
 
           return imageDefs;
@@ -110,7 +113,7 @@ export function Index() {
         const imageDefs = await Promise.all(promises);
         console.log('Got image defs of batch..', { imageDefs });
 
-        const imagesWithDefs = batch.map((imagePath, index) => {
+        const imagesWithDefs = notFetched.map((imagePath, index) => {
           const defs = imageDefs[index];
           return {
             src: imagePath.src,
@@ -119,7 +122,17 @@ export function Index() {
             ...defs,
           };
         });
+
         imagesWithDefsFinal = [...imagesWithDefsFinal, ...imagesWithDefs];
+        if (notFetched.length) {
+          localStorage.setItem(
+            'images',
+            JSON.stringify({
+              ...existingData,
+              [dir]: imagesWithDefsFinal,
+            })
+          );
+        }
 
         console.log('Sleep 800 miliseconds until next batch..');
         await sleep(200);

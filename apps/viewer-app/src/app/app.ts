@@ -98,41 +98,55 @@ export default class App {
       console.log({ appDataPath });
 
       let progress = 0;
-      const finalEntries = [];
-      for (let i = 0, len = entries.length; i < len; i++) {
-        const entry = entries[i];
-        const extension = entry.split('.').pop();
-        progress = (100 * i) / len;
-        console.log(`Progress: ${progress}%`);
+      let finalEntries = [];
+      const aResizedFileExists = fs.existsSync(
+        `${appDataPath}/image-viewer/resized/${hashCode(entries[0])}.jpg`
+      );
 
-        const image = nativeImage.createFromPath(entry);
-        const size = image.getSize();
-        if (extension !== 'gif') {
-          if (size.width > 600) {
-            const hash = hashCode(entry);
-            const targetPath = `${appDataPath}/image-viewer/resized/${hash}.jpg`;
-            if (!fs.existsSync(targetPath)) {
-              const newJpeg = image.resize({ width: 600 }).toJPEG(100);
-              fs.writeFileSync(targetPath, newJpeg);
+      if (!aResizedFileExists) {
+        for (let i = 0, len = entries.length; i < len; i++) {
+          const entry = entries[i];
+          const extension = entry.split('.').pop();
+          progress = (100 * i) / len;
+          console.log(`Progress: ${progress}%`);
+
+          const image = nativeImage.createFromPath(entry);
+          const size = image.getSize();
+          if (extension !== 'gif') {
+            if (size.width > 600) {
+              const hash = hashCode(entry);
+              const targetPath = `${appDataPath}/image-viewer/resized/${hash}.jpg`;
+              if (!fs.existsSync(targetPath)) {
+                const newJpeg = image.resize({ width: 600 }).toJPEG(100);
+                fs.writeFileSync(targetPath, newJpeg);
+              }
+              finalEntries.push({
+                src: entry,
+                resizedDataUrl: targetPath,
+              });
+              continue;
             }
-            finalEntries.push({
-              src: entry,
-              resizedDataUrl: targetPath,
-              size,
-            });
-            continue;
           }
+          finalEntries.push({
+            src: entry,
+            resizedDataUrl: undefined,
+          });
         }
-        finalEntries.push({
-          src: entry,
-          resizedDataUri: undefined,
-          size,
+      } else {
+        finalEntries = entries.map((entry) => {
+          const targetPath = `${appDataPath}/image-viewer/resized/${hashCode(
+            entry
+          )}.jpg`;
+          return {
+            src: entry,
+            resizedDataUrl: fs.existsSync(targetPath) ? targetPath : undefined,
+          };
         });
       }
 
       console.log('Processed all images');
 
-      return finalEntries;
+      return [path.filePaths[0], finalEntries];
     });
     App.mainWindow.setMenu(null);
     App.mainWindow.center();
