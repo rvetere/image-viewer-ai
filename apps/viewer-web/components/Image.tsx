@@ -56,12 +56,12 @@ export const LocalImage: FC<LocalImageProps> = ({
     threshold: 0,
   });
 
-  const [maxWidth, setMaxWidth] = useState(600);
+  const [maxWidth, setMaxWidth] = useState(200);
 
   const imgRef = useRef<HTMLImageElement>();
 
-  const handleImgClick = (event: any) => {
-    const imagePath = event.target.alt;
+  const handleImgClick = (image: ImageWithDefinitions) => () => {
+    const imagePath = image.resizedDataUrl ? image.resizedDataUrl : image.src;
     if (!nudityMap.has(imagePath)) {
       // @ts-expect-error bla
       window.electron.nudityAi(imagePath).then((result) => {
@@ -85,7 +85,7 @@ export const LocalImage: FC<LocalImageProps> = ({
     resized = true;
   }
 
-  const nudity = nudityMap.get(image.src);
+  const nudity = nudityMap.get(image.resizedDataUrl ? image.resizedDataUrl : image.src);
 
   return (
     <div style={{ width, height }} className={styles.imageContainer}>
@@ -119,7 +119,7 @@ export const LocalImage: FC<LocalImageProps> = ({
         className={classNames(styles.image, {
           [styles.resized]: resized || !!image.resizedDataUrl,
         })}
-        onClick={handleImgClick}
+        onClick={handleImgClick(image)}
       />
 
       <div className={styles.predictions}>

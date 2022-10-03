@@ -9,7 +9,7 @@ import {
 } from '../components/Image';
 import styles from './index.module.css';
 
-const BATCH_SIZE = 200;
+const BATCH_SIZE = 2000;
 
 type ImageDef = {
   size: { width: number; height: number };
@@ -134,8 +134,8 @@ export function Index() {
           );
         }
 
-        console.log('Sleep 800 miliseconds until next batch..');
-        await sleep(200);
+        console.log('Sleep 10 miliseconds until next batch..');
+        await sleep(10);
       }
 
       setImages(imagesWithDefsFinal);
@@ -171,6 +171,9 @@ export function Index() {
             if (filter === 'all') {
               return true;
             } else if (filter === 'sexyOnly') {
+              const neutral = image.predictions.find(
+                (p) => p.className === 'Neutral'
+              );
               const sexy = image.predictions.find(
                 (p) => p.className === 'Sexy'
               );
@@ -180,10 +183,11 @@ export function Index() {
               const porn = image.predictions.find(
                 (p) => p.className === 'Porn'
               );
+              const isSexy = (sexy && sexy.probability >= 0.4) ||
+              (hentai && hentai.probability >= 0.4) ||
+              (porn && porn.probability >= 0.4)
               return (
-                (sexy && sexy.probability >= 0.5) ||
-                (hentai && hentai.probability >= 0.5) ||
-                (porn && porn.probability >= 0.5)
+                isSexy && neutral.probability < 0.3
               );
             }
           })
