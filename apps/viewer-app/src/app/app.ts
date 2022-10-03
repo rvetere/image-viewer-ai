@@ -74,13 +74,16 @@ export default class App {
         preload: join(__dirname, 'main.preload.js'),
       },
     });
+    App.mainWindow.webContents.openDevTools()
     ipcMain.handle('browse', async (e) => {
       const path = await dialog.showOpenDialog({
         properties: ['openDirectory'],
       });
 
-      const pattern = `${path.filePaths[0]}/**/*.(jpg|jpeg|png|gif)`;
-      const entries = await fg([pattern], { dot: true });
+      const pattern = `${path.filePaths[0]}\\**\\*.(jpg|jpeg|png|gif)`;
+      console.log({pattern: pattern.replace(/\\/ig, '/')});
+
+      const entries = await fg([pattern.replace(/\\/ig, '/')], { dot: false });
 
       return entries;
     });

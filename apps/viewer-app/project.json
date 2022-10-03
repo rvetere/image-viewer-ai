@@ -30,7 +30,8 @@
     "serve": {
       "executor": "rocket-monkey-nx-electron:execute",
       "options": {
-        "buildTarget": "viewer-app:build"
+        "buildTarget": "viewer-app:build",
+        "inspect": false
       }
     },
     "package": {
