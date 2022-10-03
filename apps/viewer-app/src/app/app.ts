@@ -85,7 +85,7 @@ export default class App {
         properties: ['openDirectory'],
       });
 
-      const pattern = `${path.filePaths[0]}\\**\\*.(jpg|jpeg|png|gif)`.replace(
+      const pattern = `${path.filePaths[0]}\\**\\*.(jpg|jpeg|png|webp|gif)`.replace(
         /\\/gi,
         '/'
       );
