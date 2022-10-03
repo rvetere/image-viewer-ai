@@ -1,0 +1,36 @@
+.image {
+  border: 1px solid rgb(188, 125, 125);
+  display: block;
+  grid-row: 1 / -1;
+  grid-column: 1;
+}
+.image.resized {
+  border-color: rgb(141, 202, 83);
+}
+
+.imageContainer {
+  position: relative;
+  display: grid;
+  margin: 8px;
+  grid-template-rows: 1fr auto;
+}
+
+.predictions {
+  color: white;
+  font-size: 12px;
+  text-shadow: 1px 1px 2px #333;
+}
+
+.predictions span {
+  margin: 0 4px;
+}
+
+.boundingBox span {
+  font-size: 11px;
+  line-height: 14px;
+  white-space: nowrap;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  top: -22px;
+  position: relative;
+}

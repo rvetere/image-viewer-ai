@@ -1,8 +1,9 @@
-import { BrowserWindow, shell, screen } from 'electron';
+import { BrowserWindow, shell, screen, ipcMain, dialog } from 'electron';
 import { rendererAppName, rendererAppPort } from './constants';
 import { environment } from '../environments/environment';
 import { join } from 'path';
 import { format } from 'url';
+import * as fg from 'fast-glob';
 
 export default class App {
   // Keep a global reference of the window object, if you don't, the window will
@@ -68,9 +69,20 @@ export default class App {
       show: false,
       webPreferences: {
         contextIsolation: true,
+        webSecurity: false,
         backgroundThrottling: false,
         preload: join(__dirname, 'main.preload.js'),
       },
+    });
+    ipcMain.handle('browse', async (e) => {
+      const path = await dialog.showOpenDialog({
+        properties: ['openDirectory'],
+      });
+
+      const pattern = `${path.filePaths[0]}/**/*.(jpg|jpeg|png|gif)`;
+      const entries = await fg([pattern], { dot: true });
+
+      return entries;
     });
     App.mainWindow.setMenu(null);
     App.mainWindow.center();

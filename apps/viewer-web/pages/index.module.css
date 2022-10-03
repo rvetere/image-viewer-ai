@@ -1,2 +1,26 @@
 .page {
 }
+
+.working::after {
+  content: '';
+  position: fixed;
+  background: rgba(0, 0, 0, 0.75);
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  opacity: 0.6;
+  cursor: progress;
+  z-index: 20;
+}
+
+.active {
+  background-color: rgb(110, 153, 60);
+}
+
+.list {
+  background-color: lightgrey;
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+}

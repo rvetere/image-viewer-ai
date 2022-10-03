@@ -11,10 +11,16 @@
   "private": true,
   "dependencies": {
     "@nrwl/next": "14.8.2",
+    "classnames": "^2.3.2",
     "core-js": "^3.6.5",
+    "deepai": "^1.0.21",
+    "fast-glob": "^3.2.12",
+    "lodash": "^4.17.21",
     "next": "12.3.1",
+    "nsfwjs": "^2.4.2",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "react-intersection-observer": "^9.4.0",
     "regenerator-runtime": "0.13.7",
     "rocket-monkey-nx-electron": "^13.3.5",
     "tslib": "^2.3.0"
