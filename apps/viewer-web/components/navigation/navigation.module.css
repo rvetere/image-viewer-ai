@@ -1,0 +1,17 @@
+.navigation {
+  position: fixed;
+  width: 100vw;
+  top: 0;
+  z-index: 1000;
+  background: white;
+}
+.counter {
+  display: inline-block;
+  margin-left: 12px;
+}
+.mainFunctions {
+  position: relative;
+}
+.active {
+  background-color: rgb(110, 153, 60);
+}

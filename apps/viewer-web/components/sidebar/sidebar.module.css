@@ -1,16 +1,50 @@
 .sidebar {
-  background: gray;
+  position: relative;
+}
+.sidebar::after {
+  content: '';
+  position: fixed;
+  background: rgba(133, 133, 129, 0.95);
+  top: 0;
+  left: 0;
+  width: 211px;
+  height: 100vh;
+  z-index: 0;
 }
 .sidebar > div {
-  position: sticky;
-  top: 72px;
+  position: fixed;
+  top: 50px;
+  width: 211px;
   max-height: calc(100vh - 72px);
-  overflow: auto;
+  overflow-y: auto;
+  z-index: 10;
+  padding-top: 26px;
+}
+@media (min-width: 1800px) {
+  .sidebar::after {
+    width: 311px;
+  }
+  .sidebar > div {
+    width: 311px;
+  }
+}
+.actions {
+  position: absolute;
+  top: 0;
+  left: 4px;
+}
+.actions > button {
+  margin-right: 4px;
 }
 .selectedImage {
   border: 1px solid transparent;
   max-width: 90px;
   margin: 4px;
+}
+@media (min-width: 1800px) {
+  .selectedImage {
+    max-width: 140px;
+  }
 }
 .selectedImage.subSelected {
   border-color: rgb(17, 118, 250);

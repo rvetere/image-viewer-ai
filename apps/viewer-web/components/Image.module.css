@@ -13,6 +13,8 @@
   position: absolute;
   z-index: 11;
   box-shadow: 5px 5px 50px 10px black;
+  left: 50%;
+  transform: translateX(-50%);
 }
 .hidden {
   display: none !important;
@@ -25,9 +27,6 @@
   width: 100%;
   position: relative;
 }
-.imageOriginal {
-  border: 2px solid pink;
-}
 .text {
   color: white;
   font-size: 12px;
@@ -38,11 +37,9 @@
   bottom: 4px;
   left: 4px;
 }
-
 .predictions span {
   margin: 0 4px;
 }
-
 .boundingBox span {
   font-size: 11px;
   line-height: 14px;
@@ -52,11 +49,21 @@
   top: -22px;
   position: relative;
 }
-
 .openBig {
   position: absolute;
+  background: rgba(88, 88, 88, 0.75);
+  color: white;
   right: 4px;
   top: 4px;
   text-transform: uppercase;
+  height: 32px;
   font-size: 11px;
+}
+.favorite {
+  position: absolute;
+  height: 32px;
+  font-size: 18px;
+  background: rgba(88, 88, 88, 0.75);
+  left: 4px;
+  top: 4px;
 }

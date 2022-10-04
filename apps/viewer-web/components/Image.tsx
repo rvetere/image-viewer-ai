@@ -32,6 +32,8 @@ type LocalImageProps = {
   index: number;
   setSelected: Dispatch<SetStateAction<string[]>>;
   handleSelect: (index: number) => (event: any) => void;
+  favorites: string[];
+  setFavorites: Dispatch<SetStateAction<string[]>>;
 };
 
 type NudityDetections = {
@@ -69,6 +71,8 @@ export const LocalImage: FC<LocalImageProps> = ({
   selected,
   setSelected,
   handleSelect,
+  favorites,
+  setFavorites,
 }) => {
   const { ref, inView, entry } = useInView({
     threshold: 0,
@@ -106,6 +110,15 @@ export const LocalImage: FC<LocalImageProps> = ({
       }
     };
 
+  const handleFavorite = () => {
+    const exists = favorites.includes(image.src);
+    if (exists) {
+      setFavorites(favorites.filter((src) => src !== image.src));
+    } else {
+      setFavorites([...favorites, image.src]);
+    }
+  };
+
   const extension = image.src.split('.').pop();
   let resized = false;
   let { width, height } = image.size;
@@ -115,6 +128,17 @@ export const LocalImage: FC<LocalImageProps> = ({
     ratio = maxWidth / width;
     width = maxWidth;
     resized = true;
+  } else if (extension === 'gif') {
+    ratio = 2;
+    if (width >= 600) {
+      ratio = 1.2;
+    } else if (width >= 500) {
+      ratio = 1.3;
+    } else if (width >= 400) {
+      ratio = 1.5;
+    }
+    width = Math.round(width * ratio);
+    height = Math.round(height * ratio);
   }
 
   const nudity = nudityMap.get(
@@ -129,10 +153,8 @@ export const LocalImage: FC<LocalImageProps> = ({
       )}
       <div
         ref={ref}
-        // style={{ width, height }}
-        className={classNames(styles.imageContainer, {
-          [styles.hidden]: showOriginal,
-        })}
+        style={{ width, height }}
+        className={styles.imageContainer}
       >
         {showBoundingBox &&
           nudity &&
@@ -164,7 +186,7 @@ export const LocalImage: FC<LocalImageProps> = ({
               ? `file://${image.resizedDataUrl}`
               : `file://${image.src}`
           }
-          // style={{ maxWidth: width + 4 }}
+          style={{ maxWidth: width + 4 }}
           loading="lazy"
           alt={image.src}
           className={classNames(styles.image, {
@@ -174,16 +196,23 @@ export const LocalImage: FC<LocalImageProps> = ({
           onClick={handleImgClick(image, index)}
         />
 
-        {(resized || !!image.resizedDataUrl) && (
-          <button
-            className={styles.openBig}
-            onClick={() => {
-              setShowOriginal(true);
-            }}
-          >
-            Big
-          </button>
-        )}
+        <button
+          className={styles.openBig}
+          onClick={() => {
+            setShowOriginal(true);
+          }}
+        >
+          Spot
+        </button>
+
+        <button
+          title="Like"
+          onClick={handleFavorite}
+          className={styles.favorite}
+        >
+          {favorites.includes(image.src) ? '💜' : '🤍'}
+        </button>
+
         {!showOriginal && (
           <div className={classNames(styles.text, styles.predictions)}>
             {image.predictions &&

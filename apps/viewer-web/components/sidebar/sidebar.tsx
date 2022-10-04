@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
+import { hashCode } from '../../helpers/hashCode';
 import classNames from 'classnames';
-import { Dispatch, FC, SetStateAction } from 'react';
+import { Dispatch, FC, SetStateAction, useState } from 'react';
 import { ImageWithDefinitions, NudityResponse } from '../Image';
 import styles from './sidebar.module.css';
 
@@ -14,6 +15,7 @@ type SidebarProps = {
   setImages: Dispatch<SetStateAction<ImageWithDefinitions[]>>;
   storeNudityMap: (_nudityMap: Map<string, NudityResponse>) => void;
   progress: number;
+  dir: string;
 };
 
 export const Sidebar: FC<SidebarProps> = ({
@@ -26,9 +28,17 @@ export const Sidebar: FC<SidebarProps> = ({
   setSelected,
   setSubSelected,
   progress,
-  dir
+  dir,
 }) => {
+  const [sureToDelete, setSureToDelete] = useState(false);
   const handleDelete = () => {
+    if (!sureToDelete) {
+      setSureToDelete(true);
+    } else {
+      handleDeleteFinal();
+    }
+  };
+  const handleDeleteFinal = () => {
     // @ts-expect-error bla
     window.electron.deleteImage(subSelected).then((results) => {
       const newNudityMap = new Map<string, NudityResponse>();
@@ -57,11 +67,23 @@ export const Sidebar: FC<SidebarProps> = ({
         });
     });
   };
+  const clearSelection = () => {
+    setSelected([]);
+    setSubSelected([]);
+  };
   return (
     <div className={styles.sidebar}>
       <div>
         {selected.length > 0 && (
           <>
+            <div className={styles.actions}>
+              <button onClick={clearSelection}>Clear</button>
+              {subSelected.length > 0 && (
+                <button onClick={handleDelete}>
+                  {sureToDelete ? 'Sure?' : 'Delete'}
+                </button>
+              )}
+            </div>
             {selected.map((src) => {
               const image = images.find((image) => image.src === src);
               return (
@@ -74,6 +96,7 @@ export const Sidebar: FC<SidebarProps> = ({
                     [styles.subSelected]: subSelected.includes(src),
                   })}
                   onClick={(event: any) => {
+                    setSureToDelete(false);
                     if (event.shiftKey) {
                       const alreadySelected = selected.includes(src);
                       if (!alreadySelected) {
@@ -93,31 +116,10 @@ export const Sidebar: FC<SidebarProps> = ({
                 />
               );
             })}
-            {subSelected.length > 0 && (
-              <div>
-                <button onClick={handleDelete}>Delete</button>
-              </div>
-            )}
           </>
         )}
         {progress > 0 && <div style={{ marginRight: 8 }}>{progress}%</div>}
       </div>
     </div>
   );
-};
-
-const hashCode = (input: string) => {
-  if (!input) {
-    return -1;
-  }
-  let hash = 0,
-    i,
-    chr;
-  if (input.length === 0) return hash;
-  for (i = 0; i < input.length; i++) {
-    chr = input.charCodeAt(i);
-    hash = (hash << 5) - hash + chr;
-    hash |= 0; // Convert to 32bit integer
-  }
-  return hash;
 };
