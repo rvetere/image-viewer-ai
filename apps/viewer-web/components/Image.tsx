@@ -21,7 +21,9 @@ type LocalImageProps = {
   setNudityMap: Dispatch<SetStateAction<Map<string, NudityResponse>>>;
   showBoundingBox: boolean;
   selected: string[];
+  index: number;
   setSelected: Dispatch<SetStateAction<string[]>>;
+  handleSelect: (index: number) => (event: any) => void;
 };
 
 type NudityDetections = {
@@ -55,8 +57,10 @@ export const LocalImage: FC<LocalImageProps> = ({
   showBoundingBox,
   nudityMap,
   setNudityMap,
+  index,
   selected,
   setSelected,
+  handleSelect,
 }) => {
   const { ref, inView, entry } = useInView({
     threshold: 0,
@@ -68,29 +72,27 @@ export const LocalImage: FC<LocalImageProps> = ({
 
   const [showOriginal, setShowOriginal] = useState(false);
   const handleImgClick =
-    (image: ImageWithDefinitions, isResized: boolean) => (event: any) => {
-      if (event.shiftKey && isResized) {
-        setShowOriginal(true);
-        return;
-      }
+    (image: ImageWithDefinitions, index: number) => (e: any) => {
+      handleSelect(index)(e);
 
-      const alreadySelected = selected.includes(image.src);
-      if (!alreadySelected) {
-        setSelected([...selected, image.src]);
-      } else {
-        setSelected(selected.filter((src) => src !== image.src));
+      if (!e.shiftKey) {
+        const alreadySelected = selected.includes(image.src);
+        if (!alreadySelected) {
+          setSelected([...selected, image.src]);
+        } else {
+          setSelected(selected.filter((src) => src !== image.src));
+        }
       }
 
       const imagePath = image.resizedDataUrl ? image.resizedDataUrl : image.src;
       if (!nudityMap.has(imagePath)) {
-        // @ts-expect-error bla
-        window.electron.nudityAi(imagePath).then((result) => {
-          setNudityMap((prev) => {
-            const newMap = new Map(prev);
-            newMap.set(imagePath, result);
-            return newMap;
-          });
-        });
+        // window.electron.nudityAi(imagePath).then((result) => {
+        //   setNudityMap((prev) => {
+        //     const newMap = new Map(prev);
+        //     newMap.set(imagePath, result);
+        //     return newMap;
+        //   });
+        // });
       } else {
         console.log(nudityMap.get(imagePath));
       }
@@ -167,13 +169,22 @@ export const LocalImage: FC<LocalImageProps> = ({
             [styles.resized]: resized || !!image.resizedDataUrl,
             [styles.selected]: isSelected,
           })}
-          onClick={handleImgClick(image, resized || !!image.resizedDataUrl)}
+          onClick={handleImgClick(image, index)}
         />
 
-        {!(resized || !!image.resizedDataUrl) && (
+        {!(resized || !!image.resizedDataUrl) ? (
           <div className={classNames(styles.text, styles.sizeInfo)}>
             {width}x{height}
           </div>
+        ) : (
+          <button
+            className={styles.openBig}
+            onClick={() => {
+              setShowOriginal(true);
+            }}
+          >
+            Big
+          </button>
         )}
         {!showOriginal && (
           <div className={classNames(styles.text, styles.predictions)}>

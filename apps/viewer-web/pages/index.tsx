@@ -421,6 +421,40 @@ export function Index() {
       setImages(newImages);
     });
   };
+  const [selectStartIndex, setSelectStartIndex] = useState(-1);
+  const handleSelect = (index: number) => (event: any) => {
+    if (selectStartIndex === -1) {
+      setSelectStartIndex(index);
+    } else if (event.shiftKey) {
+      const newSelected = images
+        .filter(filterFn)
+        .sort((a, b) => {
+          const sizeA = a.size.width * a.size.height;
+          const sizeB = b.size.width * b.size.height;
+          if (sizeA > sizeB) {
+            return -1;
+          } else if (sizeA < sizeB) {
+            return 1;
+          }
+          return 0;
+        })
+        .sort((a, b) => {
+          if (filter === 'buttocksOnly') {
+            return sortWithFilter('buttocks')(a, b);
+          } else if (filter === 'breastsOnly') {
+            return sortWithFilter('breast')(a, b);
+          } else if (filter !== 'all' && filter !== 'sexyOnly') {
+            return sortWithFilter(filter)(a, b);
+          }
+          return 0;
+        })
+        .filter((image, idx) => idx >= selectStartIndex && idx <= index)
+        .map((image) => image.src);
+      setSelected(newSelected);
+      console.log('multi select!', selectStartIndex, index);
+    }
+  };
+  console.log({ selected });
 
   return (
     <div className={classNames(styles.page, { [styles.working]: working })}>
@@ -585,12 +619,14 @@ export function Index() {
             .map((image, index) => (
               <LocalImage
                 key={`image-${index}`}
+                index={index}
                 image={image}
                 nudityMap={nudityMap}
                 setNudityMap={setNudityMap}
                 selected={selected}
                 setSelected={setSelected}
                 showBoundingBox={showBoundingBox}
+                handleSelect={handleSelect}
               />
             ))}
         </div>

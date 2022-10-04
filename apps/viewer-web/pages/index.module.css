@@ -11,7 +11,9 @@
 }
 .sidebar > div {
   position: sticky;
-  top: 100px;
+  top: 72px;
+  max-height: calc(100vh - 72px);
+  overflow: auto;
 }
 
 .selectedImage {

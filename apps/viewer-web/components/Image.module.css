@@ -49,3 +49,9 @@
   top: -22px;
   position: relative;
 }
+
+.openBig {
+  position: absolute;
+  right: -2px;
+  top: 2px;
+}
