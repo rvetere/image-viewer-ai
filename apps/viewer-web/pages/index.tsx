@@ -294,11 +294,11 @@ export function Index() {
 
         console.log('new size of nudity map:', newNudityMap.size);
 
-        if (newNudityMap.size < count) {
-          setTimeout(() => {
-            handleNudityApi(newNudityMap)();
-          }, 3000);
-        }
+        //if (newNudityMap.size < count) {
+        //  setTimeout(() => {
+        //    handleNudityApi(newNudityMap)();
+        //  }, 3000);
+        //}
       });
   };
 
@@ -384,13 +384,14 @@ export function Index() {
           )}
         </div>
 
-        <div>
-          {Object.entries(wordCloud)
-            .sort(([_aName, aConfidence], [_bName, bConfidence]) => {
-              return bConfidence - aConfidence;
-            })
-            .map(([name, _confidence]) => {
-              console.log({ _confidence });
+        {count > 0 && filter === 'sexyOnly' && (
+          <button onClick={handleNudityApi(nudityMap)}>Run Nudity API</button>
+        )}
+        {Object.entries(wordCloud)
+          .sort(([_aName, aConfidence], [_bName, bConfidence]) => {
+            return bConfidence - aConfidence;
+          })
+          .map(([name, _confidence]) => {
 
               return (
                 <button

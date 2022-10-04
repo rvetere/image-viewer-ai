@@ -202,6 +202,9 @@ export default class App {
 }
 
 const hashCode = (input: string) => {
+  if (!input) {
+    return -1
+  }
   let hash = 0,
     i,
     chr;
