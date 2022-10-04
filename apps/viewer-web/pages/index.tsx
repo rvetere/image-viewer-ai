@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import classNames from 'classnames';
 import * as nsfwjs from 'nsfwjs';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -81,6 +82,7 @@ export function Index() {
   const [working, setWorking] = useState(false);
   const [progress, setProgress] = useState(0);
 
+  const [selected, setSelected] = useState<string[]>([]);
   const [images, setImages] = useState<ImageWithDefinitions[]>([]);
   const handleBrowse = () => {
     setWorking(true);
@@ -332,109 +334,135 @@ export function Index() {
       });
     return cloud;
   }, [images]);
-  console.log({ wordCloud, filter });
 
   return (
     <div className={classNames(styles.page, { [styles.working]: working })}>
       <div className={styles.navigation}>
         {progress > 0 && <div style={{ marginRight: 8 }}>{progress}%</div>}
         {model && <button onClick={handleBrowse}>Browse</button>}
-        {images.length > 0 && (
-          <button
-            onClick={handleFilterSexyOnly}
-            className={classNames({ [styles.active]: filter === 'sexyOnly' })}
-          >
-            Sexy only
-          </button>
-        )}
-        {images.length > 0 && (
-          <button
-            onClick={handleFilterButtocksOnly}
-            className={classNames({
-              [styles.active]: filter === 'buttocksOnly',
-            })}
-          >
-            Buttocks only
-          </button>
-        )}
-        {images.length > 0 && (
-          <button
-            onClick={handleFilterBreastsOnly}
-            className={classNames({
-              [styles.active]: filter === 'breastsOnly',
-            })}
-          >
-            Breasts only
-          </button>
-        )}
-        {images.length > 0 && (
-          <button
-            onClick={toggleShowBoundingBox}
-            className={classNames({
-              [styles.active]: showBoundingBox,
-            })}
-          >
-            Show bounding box
-          </button>
-        )}
+        <div className={styles.mainFunctions}>
+          {images.length > 0 && (
+            <button
+              onClick={handleFilterSexyOnly}
+              className={classNames({ [styles.active]: filter === 'sexyOnly' })}
+            >
+              Sexy only
+            </button>
+          )}
+          {images.length > 0 && (
+            <button
+              onClick={handleFilterButtocksOnly}
+              className={classNames({
+                [styles.active]: filter === 'buttocksOnly',
+              })}
+            >
+              Buttocks only
+            </button>
+          )}
+          {images.length > 0 && (
+            <button
+              onClick={handleFilterBreastsOnly}
+              className={classNames({
+                [styles.active]: filter === 'breastsOnly',
+              })}
+            >
+              Breasts only
+            </button>
+          )}
+          {images.length > 0 && (
+            <button
+              onClick={toggleShowBoundingBox}
+              className={classNames({
+                [styles.active]: showBoundingBox,
+              })}
+            >
+              Bounding box
+            </button>
+          )}
+          {count > 0 && filter === 'sexyOnly' && (
+            <button onClick={handleNudityApi(nudityMap)}>Run Nudity API</button>
+          )}
+        </div>
 
-        {count > 0 && filter === 'sexyOnly' && (
-          <button onClick={handleNudityApi(nudityMap)}>Run Nudity API</button>
-        )}
-        {Object.entries(wordCloud)
-          .sort(([_aName, aConfidence], [_bName, bConfidence]) => {
-            return bConfidence - aConfidence;
-          })
-          .map(([name, _confidence]) => {
-            console.log({ _confidence });
+        <div>
+          {Object.entries(wordCloud)
+            .sort(([_aName, aConfidence], [_bName, bConfidence]) => {
+              return bConfidence - aConfidence;
+            })
+            .map(([name, _confidence]) => {
+              console.log({ _confidence });
 
-            return (
-              <button
-                key={name}
-                onClick={handleNudityFilter(name)}
-                className={classNames({
-                  [styles.active]: filter === name,
-                })}
-              >
-                {name}
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={name}
+                  onClick={handleNudityFilter(name)}
+                  className={classNames({
+                    [styles.active]: filter === name,
+                  })}
+                >
+                  {name}
+                </button>
+              );
+            })}
+        </div>
 
-        <span>{count}x</span>
+        <div className={styles.counter}>{count}x</div>
       </div>
-      <div className={styles.list}>
-        {images
-          .filter(filterFn)
-          .sort((a, b) => {
-            const sizeA = a.size.width * a.size.height;
-            const sizeB = b.size.width * b.size.height;
-            if (sizeA > sizeB) {
-              return -1;
-            } else if (sizeA < sizeB) {
-              return 1;
-            }
-            return 0;
-          })
-          .sort((a, b) => {
-            if (filter === 'buttocksOnly') {
-              return sortWithFilter('buttocks')(a, b);
-            } else if (filter === 'breastsOnly') {
-              return sortWithFilter('breast')(a, b);
-            } else if (filter !== 'all' && filter !== 'sexyOnly') {
-              return sortWithFilter(filter)(a, b);
-            }
-            return 0;
-          })
-          .map((image, index) => (
-            <LocalImage
-              key={`image-${index}`}
-              image={image}
-              nudityMap={nudityMap}
-              setNudityMap={setNudityMap}
-              showBoundingBox={showBoundingBox}
-            />
-          ))}
+      <div className={styles.layout}>
+        <div className={styles.sidebar}>
+          <div>
+            {selected.length > 0 && (
+              <>
+                {selected.map((src) => {
+                  const image = images.find((image) => image.src === src);
+                  return (
+                    <img
+                      key={src}
+                      className={styles.selectedImage}
+                      src={`file://${image?.resizedDataUrl || image?.src}`}
+                      alt={src}
+                    />
+                  );
+                })}
+              </>
+            )}
+          </div>
+        </div>
+        <div className={styles.list}>
+          {images
+            .filter(filterFn)
+            .sort((a, b) => {
+              const sizeA = a.size.width * a.size.height;
+              const sizeB = b.size.width * b.size.height;
+              if (sizeA > sizeB) {
+                return -1;
+              } else if (sizeA < sizeB) {
+                return 1;
+              }
+              return 0;
+            })
+            .sort((a, b) => {
+              if (filter === 'buttocksOnly') {
+                return sortWithFilter('buttocks')(a, b);
+              } else if (filter === 'breastsOnly') {
+                return sortWithFilter('breast')(a, b);
+              } else if (filter !== 'all' && filter !== 'sexyOnly') {
+                return sortWithFilter(filter)(a, b);
+              }
+              return 0;
+            })
+            .map((image, index) => (
+              <LocalImage
+                key={`image-${index}`}
+                image={image}
+                nudityMap={nudityMap}
+                setNudityMap={setNudityMap}
+                selected={selected}
+                setSelected={setSelected}
+                showBoundingBox={showBoundingBox}
+              />
+            ))}
+        </div>
       </div>
     </div>
   );

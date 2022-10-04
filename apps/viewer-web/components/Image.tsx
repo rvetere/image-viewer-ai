@@ -17,9 +17,11 @@ export type ImageWithDefinitions = BrowseResponse & {
 
 type LocalImageProps = {
   image: ImageWithDefinitions;
-  showBoundingBox: boolean;
   nudityMap: Map<string, NudityResponse>;
   setNudityMap: Dispatch<SetStateAction<Map<string, NudityResponse>>>;
+  showBoundingBox: boolean;
+  selected: string[];
+  setSelected: Dispatch<SetStateAction<string[]>>;
 };
 
 type NudityDetections = {
@@ -53,6 +55,8 @@ export const LocalImage: FC<LocalImageProps> = ({
   showBoundingBox,
   nudityMap,
   setNudityMap,
+  selected,
+  setSelected,
 }) => {
   const { ref, inView, entry } = useInView({
     threshold: 0,
@@ -63,6 +67,13 @@ export const LocalImage: FC<LocalImageProps> = ({
   const imgRef = useRef<HTMLImageElement>();
 
   const handleImgClick = (image: ImageWithDefinitions) => () => {
+    const alreadySelected = selected.includes(image.src);
+    if (!alreadySelected) {
+      setSelected([...selected, image.src]);
+    } else {
+      setSelected(selected.filter((src) => src !== image.src));
+    }
+
     const imagePath = image.resizedDataUrl ? image.resizedDataUrl : image.src;
     if (!nudityMap.has(imagePath)) {
       // @ts-expect-error bla
@@ -93,6 +104,7 @@ export const LocalImage: FC<LocalImageProps> = ({
     image.resizedDataUrl ? image.resizedDataUrl : image.src
   );
 
+  const isSelected = selected.includes(image.src);
   return (
     <div style={{ width, height }} className={styles.imageContainer}>
       {showBoundingBox &&
@@ -125,16 +137,20 @@ export const LocalImage: FC<LocalImageProps> = ({
             ? `file://${image.resizedDataUrl}`
             : `file://${image.src}`
         }
-        style={{ maxWidth: width + 2 }}
+        style={{ maxWidth: width + 4 }}
         loading="lazy"
         alt={image.src}
         className={classNames(styles.image, {
           [styles.resized]: resized || !!image.resizedDataUrl,
+          [styles.selected]: isSelected,
         })}
         onClick={handleImgClick(image)}
       />
 
-      <div className={styles.predictions}>
+      <div className={classNames(styles.text, styles.sizeInfo)}>
+        {width}x{height}
+      </div>
+      <div className={classNames(styles.text, styles.predictions)}>
         {image.predictions &&
           image.predictions.map((p, index) => (
             <span key={`prediction-${index}`}>

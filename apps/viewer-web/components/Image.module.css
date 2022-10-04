@@ -1,5 +1,5 @@
 .image {
-  border: 1px solid rgb(188, 125, 125);
+  border: 2px solid rgb(188, 125, 125);
   display: block;
   grid-row: 1 / -1;
   grid-column: 1;
@@ -7,7 +7,13 @@
 .image.resized {
   border-color: rgb(141, 202, 83);
 }
-
+.image.selected {
+  border-color: rgb(25, 101, 214) !important;
+}
+.sizeInfo {
+  position: absolute;
+  right: 0;
+}
 .imageContainer {
   position: relative;
   display: grid;
@@ -15,10 +21,14 @@
   grid-template-rows: 1fr auto;
 }
 
-.predictions {
+.text {
   color: white;
   font-size: 12px;
   text-shadow: 1px 1px 2px #333;
+}
+
+.predictions {
+  position: relative;
 }
 
 .predictions span {

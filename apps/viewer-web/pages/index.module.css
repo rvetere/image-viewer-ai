@@ -1,4 +1,21 @@
 .page {
+  height: 100%;
+}
+
+.layout {
+  display: grid;
+  grid-gap: 20px;
+  grid-template-columns: 250px auto;
+}
+
+.sidebar > div {
+  position: sticky;
+  top: 100px;
+}
+
+.selectedImage {
+  max-width: 70px;
+  margin: 4px;
 }
 
 .navigation {
@@ -6,6 +23,16 @@
   top: 0;
   z-index: 1000;
   background: white;
+}
+
+.mainFunctions {
+  position: relative;
+}
+
+.counter {
+  position: absolute;
+  right: 0;
+  top: 0;
 }
 
 .working::after {
