@@ -130,7 +130,7 @@ export function Index() {
       }
       let imagesWithDefsFinal = existingDefs.map((existing) => {
         const image = imagePaths.find((i) => i.src === existing.src);
-        if (image.resizedDataUrl && !existing.resizedDataUrl) {
+        if (image && image.resizedDataUrl && !existing.resizedDataUrl) {
           const maxWidth = 600;
           const height = Math.round(
             (existing.size.height / existing.size.width) * maxWidth
@@ -213,7 +213,7 @@ export function Index() {
     });
   };
 
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState('sexyOnly');
   const [format, setFormat] = useState('all');
   const filterFormat = useCallback(
     (image) => {
@@ -382,11 +382,11 @@ export function Index() {
 
         console.log('new size of nudity map:', newNudityMap.size);
 
-        // if (newNudityMap.size < count) {
-        //   setTimeout(() => {
-        //     handleNudityApi(newNudityMap)();
-        //   }, 3000);
-        // }
+        if (newNudityMap.size < count) {
+          setTimeout(() => {
+            handleNudityApi(newNudityMap)();
+          }, 3000);
+        }
       });
   };
 
@@ -557,7 +557,7 @@ export function Index() {
           setSubSelected={setSubSelected}
         />
         <ResponsiveMasonry
-          columnsCountBreakPoints={{ 350: 1, 750: 2, 900: 3, 3000: 4 }}
+          columnsCountBreakPoints={{ 350: 1, 750: 2, 900: 3, 2000: 4 }}
         >
           <Masonry gutter="10px">
             {images

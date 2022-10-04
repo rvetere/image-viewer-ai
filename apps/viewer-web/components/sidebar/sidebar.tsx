@@ -26,6 +26,7 @@ export const Sidebar: FC<SidebarProps> = ({
   setSelected,
   setSubSelected,
   progress,
+  dir
 }) => {
   const handleDelete = () => {
     // @ts-expect-error bla
@@ -48,6 +49,12 @@ export const Sidebar: FC<SidebarProps> = ({
         (image) => !subSelected.includes(image.src)
       );
       setImages(newImages);
+      // @ts-expect-error bla
+      window.electron
+        .storeData(`${hashCode(dir)}.json`, JSON.stringify(newImages))
+        .then((results) => {
+          console.log('Stored data', { results });
+        });
     });
   };
   return (
@@ -61,7 +68,7 @@ export const Sidebar: FC<SidebarProps> = ({
                 <img
                   key={src}
                   title={`${image.size.width}x${image.size.height}`}
-                  src={`file://${image?.resizedDataUrl || image?.src}`}
+                  src={`file://${image?.src}`}
                   alt={src}
                   className={classNames(styles.selectedImage, {
                     [styles.subSelected]: subSelected.includes(src),
@@ -97,4 +104,20 @@ export const Sidebar: FC<SidebarProps> = ({
       </div>
     </div>
   );
+};
+
+const hashCode = (input: string) => {
+  if (!input) {
+    return -1;
+  }
+  let hash = 0,
+    i,
+    chr;
+  if (input.length === 0) return hash;
+  for (i = 0; i < input.length; i++) {
+    chr = input.charCodeAt(i);
+    hash = (hash << 5) - hash + chr;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash;
 };

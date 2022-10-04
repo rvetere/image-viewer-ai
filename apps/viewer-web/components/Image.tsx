@@ -174,11 +174,7 @@ export const LocalImage: FC<LocalImageProps> = ({
           onClick={handleImgClick(image, index)}
         />
 
-        {!(resized || !!image.resizedDataUrl) ? (
-          <div className={classNames(styles.text, styles.sizeInfo)}>
-            {width}x{height}
-          </div>
-        ) : (
+        {(resized || !!image.resizedDataUrl) && (
           <button
             className={styles.openBig}
             onClick={() => {
