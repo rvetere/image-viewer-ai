@@ -58,25 +58,28 @@ export function Index() {
     }
   }, []);
 
+  const storeNudityMap = (_nudityMap) => {
+    const serialize = {};
+    for (const [key, value] of _nudityMap.entries()) {
+      if (value && typeof value !== 'string') {
+        serialize[key] = value;
+      }
+    }
+    console.log('Save new nudityMap: ', Object.keys(serialize).length);
+
+    // @ts-expect-error bla
+    window.electron
+      .storeData(
+        `${hashCode(browsingDir)}_nudity.json`,
+        JSON.stringify(serialize)
+      )
+      .then((results) => {
+        console.log('Stored nudity data', { results });
+      });
+  };
   useEffect(() => {
     if (browsingDir && nudityMap.size > 0) {
-      const serialize = {};
-      for (const [key, value] of nudityMap.entries()) {
-        if (value && typeof value !== 'string') {
-          serialize[key] = value;
-        }
-      }
-      console.log('Save new nudityMap: ', Object.keys(serialize).length);
-
-      // @ts-expect-error bla
-      window.electron
-        .storeData(
-          `${hashCode(browsingDir)}_nudity.json`,
-          JSON.stringify(serialize)
-        )
-        .then((results) => {
-          console.log('Stored nudity data', { results });
-        });
+      storeNudityMap(nudityMap);
     }
   }, [browsingDir, nudityMap]);
 
@@ -110,6 +113,7 @@ export function Index() {
     setSubSelected([]);
     setImages([]);
     setBrowsingDir(null);
+    setNudityMap(new Map<string, NudityResponse>());
     // @ts-expect-error bla
     window.electron.browse().then(async ([dir, imagePaths]) => {
       // @ts-expect-error bla
@@ -185,6 +189,21 @@ export function Index() {
   };
 
   const [filter, setFilter] = useState('all');
+  const [format, setFormat] = useState('all');
+  const filterFormat = useCallback(
+    (image) => {
+      if (format === 'all') {
+        return true;
+      }
+      const extension = image.src.split('.').pop();
+      if (format === 'gifsOnly') {
+        return extension === 'gif';
+      } else if (format === 'staticOnly') {
+        return extension !== 'gif';
+      }
+    },
+    [format]
+  );
   const filterFn = useCallback(
     (image) => {
       const neutral = image.predictions.find((p) => p.className === 'Neutral');
@@ -197,7 +216,7 @@ export function Index() {
         (porn && porn.probability >= 0.4);
 
       if (filter === 'all') {
-        return true;
+        return true && filterFormat(image);
       } else if (filter === 'buttocksOnly') {
         const nudity = nudityMap.get(
           image.resizedDataUrl ? image.resizedDataUrl : image.src
@@ -212,7 +231,8 @@ export function Index() {
             isSexy &&
             neutral.probability < 0.3 &&
             check &&
-            parseFloat(check.confidence) > 0.67
+            parseFloat(check.confidence) > 0.67 &&
+            filterFormat(image)
           );
         }
         return false;
@@ -234,12 +254,13 @@ export function Index() {
             nudity.output &&
             nudity.output.nsfw_score > 0.67 &&
             check &&
-            parseFloat(check.confidence) > 0.67
+            parseFloat(check.confidence) > 0.67 &&
+            filterFormat(image)
           );
         }
         return false;
       } else if (filter === 'sexyOnly') {
-        return isSexy && neutral.probability < 0.3;
+        return isSexy && neutral.probability < 0.3 && filterFormat(image);
       } else {
         // word filter
         const nudity = nudityMap.get(
@@ -253,13 +274,14 @@ export function Index() {
             isSexy &&
             neutral.probability < 0.3 &&
             check &&
-            parseFloat(check.confidence) > 0.67
+            parseFloat(check.confidence) > 0.67 &&
+            filterFormat(image)
           );
         }
         return false;
       }
     },
-    [filter]
+    [filter, format]
   );
   const sortWithFilter =
     (search: string) => (a: ImageWithDefinitions, b: ImageWithDefinitions) => {
@@ -291,9 +313,18 @@ export function Index() {
   const handleFilterBreastsOnly = () => {
     setFilter(filter === 'breastsOnly' ? 'all' : 'breastsOnly');
   };
+
+  const handleFormatGifsOnly = () => {
+    setFormat(format === 'gifsOnly' ? 'all' : 'gifsOnly');
+  };
+
+  const handleFormatStaticOnly = () => {
+    setFormat(format === 'staticOnly' ? 'all' : 'staticOnly');
+  };
+
   useEffect(() => {
     setCount(images.filter(filterFn).length);
-  }, [filter, images.length]);
+  }, [filter, format, images.length]);
 
   const handleNudityApi = (_nudityMap: Map<string, NudityResponse>) => () => {
     setWorking(true);
@@ -370,6 +401,14 @@ export function Index() {
   const handleDelete = () => {
     // @ts-expect-error bla
     window.electron.deleteImage(subSelected).then((results) => {
+      const newNudityMap = new Map<string, NudityResponse>();
+      for (const [key, value] of nudityMap.entries()) {
+        if (!selected.includes(key)) {
+          newNudityMap.set(key, value);
+        }
+      }
+      storeNudityMap(newNudityMap);
+
       const newSubSelected = subSelected.filter(
         (src) => !subSelected.includes(src)
       );
@@ -415,6 +454,26 @@ export function Index() {
               })}
             >
               Breasts only
+            </button>
+          )}
+          {images.length > 0 && (
+            <button
+              onClick={handleFormatGifsOnly}
+              className={classNames({
+                [styles.active]: format === 'gifsOnly',
+              })}
+            >
+              Gifs only
+            </button>
+          )}
+          {images.length > 0 && (
+            <button
+              onClick={handleFormatStaticOnly}
+              className={classNames({
+                [styles.active]: format === 'staticOnly',
+              })}
+            >
+              Static only
             </button>
           )}
           {images.length > 0 && (
