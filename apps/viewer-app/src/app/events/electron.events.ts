@@ -35,7 +35,7 @@ ipcMain.handle('nudity-ai', async (event, path) => {
 });
 
 ipcMain.handle('nudity-ai-bulk', async (event, paths) => {
-  console.log(`Fetching nudity DeepAI: "${paths.length}"`);
+  console.log(`Fetching nudity DeepAI Bulk: "${paths.length}"`);
 
   const promises = paths.map(async (path) => {
     try {
@@ -52,7 +52,7 @@ ipcMain.handle('nudity-ai-bulk', async (event, paths) => {
   });
 
   const results = await Promise.all(promises);
-  console.log('Finished fetching nudity API..');
+  console.log(`Finished fetching ${results.length} requests with nudity API..`);
 
   return results;
 });

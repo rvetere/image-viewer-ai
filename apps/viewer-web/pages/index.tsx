@@ -292,11 +292,11 @@ export function Index() {
 
         console.log('new size of nudity map:', newNudityMap.size);
 
-        if (newNudityMap.size < count) {
-          setTimeout(() => {
-            handleNudityApi(newNudityMap)();
-          }, 3000);
-        }
+        //if (newNudityMap.size < count) {
+        //  setTimeout(() => {
+        //    handleNudityApi(newNudityMap)();
+        //  }, 3000);
+        //}
       });
   };
 
@@ -386,7 +386,6 @@ export function Index() {
             return bConfidence - aConfidence;
           })
           .map(([name, _confidence]) => {
-            console.log({ _confidence });
 
             return (
               <button
