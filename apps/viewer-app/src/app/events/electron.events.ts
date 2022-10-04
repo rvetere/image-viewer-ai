@@ -38,6 +38,24 @@ ipcMain.handle('delete-image', (event, paths) => {
   return true;
 });
 
+ipcMain.handle('store-data', (event, path, content) => {
+  const appDataPath = app.getPath('userData');
+  const targetPath = `${appDataPath}/image-viewer/${path}`;
+  console.log({ targetPath });
+
+  fs.writeFileSync(`${targetPath}`, content);
+  return true;
+});
+
+ipcMain.handle('get-data', (event, path) => {
+  const appDataPath = app.getPath('userData');
+  const targetPath = `${appDataPath}/image-viewer/${path}`;
+  if (fs.existsSync(targetPath)) {
+    return fs.readFileSync(`${targetPath}`, 'utf8');
+  }
+  return null;
+});
+
 ipcMain.handle('nudity-ai', async (event, path) => {
   console.log(`Fetching nudity DeepAI: "${path}"`);
 

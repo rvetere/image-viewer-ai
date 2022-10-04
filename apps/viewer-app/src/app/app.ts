@@ -104,8 +104,6 @@ export default class App {
         `${appDataPath}/image-viewer/resized/${hashCode(entries[0])}.jpg`
       );
 
-      console.log({ entries });
-
       if (!aResizedFileExists) {
         for (let i = 0, len = entries.length; i < len; i++) {
           const entry = entries[i];
@@ -147,7 +145,9 @@ export default class App {
         });
       }
 
-      console.log('Processed all images');
+      console.log('Processed all images', {
+        finalEntries: finalEntries.length,
+      });
 
       return [path.filePaths[0], finalEntries];
     });

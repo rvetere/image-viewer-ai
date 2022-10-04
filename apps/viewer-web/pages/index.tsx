@@ -46,20 +46,8 @@ const getImageDef = (image: BrowseResponse, model: nsfwjs.NSFWJS) => {
 };
 
 export function Index() {
+  const [browsingDir, setBrowsingDir] = useState<string | null>(null);
   const [nudityMap, setNudityMap] = useState(new Map<string, NudityResponse>());
-  useEffect(() => {
-    if (nudityMap.size > 0) {
-      const serialize = {};
-      for (const [key, value] of nudityMap.entries()) {
-        if (value && typeof value !== 'string') {
-          serialize[key] = value;
-        }
-      }
-      console.log('Save new nudityMap: ', Object.keys(serialize).length);
-
-      localStorage.setItem('nudityMap', JSON.stringify(serialize));
-    }
-  }, [nudityMap]);
 
   const [model, setModel] = useState<nsfwjs.NSFWJS>();
   useEffect(() => {
@@ -68,16 +56,47 @@ export function Index() {
         setModel(_model);
       });
     }
-    const nudityMapStored = localStorage.getItem('nudityMap');
-    if (nudityMapStored) {
-      const newNudityMap = new Map<string, NudityResponse>(
-        Object.entries(JSON.parse(nudityMapStored))
-      );
-      console.log({ newNudityMap });
-
-      setNudityMap(newNudityMap);
-    }
   }, []);
+
+  useEffect(() => {
+    if (browsingDir && nudityMap.size > 0) {
+      const serialize = {};
+      for (const [key, value] of nudityMap.entries()) {
+        if (value && typeof value !== 'string') {
+          serialize[key] = value;
+        }
+      }
+      console.log('Save new nudityMap: ', Object.keys(serialize).length);
+
+      // @ts-expect-error bla
+      window.electron
+        .storeData(
+          `${hashCode(browsingDir)}_nudity.json`,
+          JSON.stringify(serialize)
+        )
+        .then((results) => {
+          console.log('Stored nudity data', { results });
+        });
+    }
+  }, [browsingDir, nudityMap]);
+
+  useEffect(() => {
+    if (browsingDir) {
+      // @ts-expect-error bla
+      window.electron
+        .getData(`${hashCode(browsingDir)}_nudity.json`)
+        .then((nudityMapStr) => {
+          if (nudityMapStr) {
+            const newNudityMap = new Map<string, NudityResponse>(
+              Object.entries(JSON.parse(nudityMapStr))
+            );
+            console.log({ newNudityMap });
+
+            setNudityMap(newNudityMap);
+          }
+        });
+    }
+  }, [browsingDir]);
 
   const [working, setWorking] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -90,23 +109,25 @@ export function Index() {
     setSelected([]);
     setSubSelected([]);
     setImages([]);
+    setBrowsingDir(null);
     // @ts-expect-error bla
     window.electron.browse().then(async ([dir, imagePaths]) => {
+      // @ts-expect-error bla
+      const existing = await window.electron.getData(`${hashCode(dir)}.json`);
+      setBrowsingDir(dir);
       console.log({ dir, len: imagePaths.length });
 
-      const batches = getBatches(imagePaths);
-      const batchCount = batches.length;
-      console.log(`Got ${batchCount} batches of ${BATCH_SIZE}`);
-      const existingData = localStorage.getItem('images')
-        ? JSON.parse(localStorage.getItem('images'))
-        : {};
-      let existingDefs = existingData[dir] || [];
+      let existingDefs = existing ? JSON.parse(existing) : [];
       if (existingDefs.length > imagePaths.length) {
         existingDefs = existingDefs.filter((existing) =>
           imagePaths.includes(existing.src)
         );
       }
       let imagesWithDefsFinal = existingDefs;
+
+      const batches = getBatches(imagePaths);
+      const batchCount = batches.length;
+      console.log(`Got ${batchCount} batches of ${BATCH_SIZE}`);
       while (batches.length) {
         const batch = batches.shift();
         const newProgress = (100 * (batchCount - batches.length)) / batchCount;
@@ -139,13 +160,15 @@ export function Index() {
 
         imagesWithDefsFinal = [...imagesWithDefsFinal, ...imagesWithDefs];
         if (notFetched.length) {
-          localStorage.setItem(
-            'images',
-            JSON.stringify({
-              ...existingData,
-              [dir]: imagesWithDefsFinal,
-            })
-          );
+          // @ts-expect-error bla
+          window.electron
+            .storeData(
+              `${hashCode(dir)}.json`,
+              JSON.stringify(imagesWithDefsFinal)
+            )
+            .then((results) => {
+              console.log('Stored data', { results });
+            });
         }
 
         console.log('Sleep 10 miliseconds until next batch..');
@@ -533,6 +556,22 @@ const sleep = (time: number): Promise<void> => {
       resolve();
     }, time);
   });
+};
+
+const hashCode = (input: string) => {
+  if (!input) {
+    return -1;
+  }
+  let hash = 0,
+    i,
+    chr;
+  if (input.length === 0) return hash;
+  for (i = 0; i < input.length; i++) {
+    chr = input.charCodeAt(i);
+    hash = (hash << 5) - hash + chr;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash;
 };
 
 export default Index;
