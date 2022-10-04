@@ -121,7 +121,16 @@ export const LocalImage: FC<LocalImageProps> = ({
           <img
             src={`file://${image.src}`}
             alt={image.src}
-            onClick={() => setShowOriginal(false)}
+            onClick={() => {
+              setShowOriginal(false);
+              setTimeout(() => {
+                imgRef.current.scrollIntoView();
+              }, 10);
+            }}
+            onLoad={(e) => {
+              const img = e.target as HTMLImageElement;
+              img.scrollIntoView();
+            }}
           />
         </div>
       )}

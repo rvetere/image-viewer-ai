@@ -4,7 +4,7 @@
 
 .layout {
   display: grid;
-  grid-template-columns: 350px auto;
+  grid-template-columns: 196px auto;
 }
 .sidebar {
   background: gray;
@@ -59,6 +59,9 @@
 }
 
 .list {
+  height: calc(100vh - 48px);
+  overflow: auto;
+  scroll-behavior: smooth;
   background-color: lightgrey;
   width: 100%;
   display: flex;
