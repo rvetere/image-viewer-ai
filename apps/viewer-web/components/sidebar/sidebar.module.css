@@ -1,0 +1,17 @@
+.sidebar {
+  background: gray;
+}
+.sidebar > div {
+  position: sticky;
+  top: 72px;
+  max-height: calc(100vh - 72px);
+  overflow: auto;
+}
+.selectedImage {
+  border: 1px solid transparent;
+  max-width: 90px;
+  margin: 4px;
+}
+.selectedImage.subSelected {
+  border-color: rgb(17, 118, 250);
+}

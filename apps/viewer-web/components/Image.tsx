@@ -1,8 +1,16 @@
 /* eslint-disable @next/next/no-img-element */
 import classNames from 'classnames';
 import * as nsfwjs from 'nsfwjs';
-import { Dispatch, FC, SetStateAction, useRef, useState } from 'react';
+import {
+  Dispatch,
+  FC,
+  SetStateAction,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { useInView } from 'react-intersection-observer';
+import { createPortal } from 'react-dom';
 import styles from './Image.module.css';
 
 export type BrowseResponse = {
@@ -103,7 +111,7 @@ export const LocalImage: FC<LocalImageProps> = ({
   let { width, height } = image.size;
   let ratio = 1;
   if (width > maxWidth && extension !== 'gif') {
-    height = (height / width) * maxWidth;
+    height = Math.round((height / width) * maxWidth);
     ratio = maxWidth / width;
     width = maxWidth;
     resized = true;
@@ -117,31 +125,16 @@ export const LocalImage: FC<LocalImageProps> = ({
   return (
     <>
       {showOriginal && (
-        <div className={styles.imageOriginal}>
-          <img
-            src={`file://${image.src}`}
-            alt={image.src}
-            onClick={() => {
-              setShowOriginal(false);
-              setTimeout(() => {
-                imgRef.current.scrollIntoView();
-              }, 10);
-            }}
-            onLoad={(e) => {
-              const img = e.target as HTMLImageElement;
-              img.scrollIntoView();
-            }}
-          />
-        </div>
+        <OriginalImage image={image} reset={() => setShowOriginal(false)} />
       )}
       <div
-        style={{ width, height }}
+        ref={ref}
+        // style={{ width, height }}
         className={classNames(styles.imageContainer, {
           [styles.hidden]: showOriginal,
         })}
       >
         {showBoundingBox &&
-          !showOriginal &&
           nudity &&
           nudity.output &&
           nudity.output.detections.map((detection, index) => (
@@ -171,11 +164,11 @@ export const LocalImage: FC<LocalImageProps> = ({
               ? `file://${image.resizedDataUrl}`
               : `file://${image.src}`
           }
-          style={{ maxWidth: width + 4 }}
+          // style={{ maxWidth: width + 4 }}
           loading="lazy"
           alt={image.src}
           className={classNames(styles.image, {
-            [styles.resized]: resized || !!image.resizedDataUrl,
+            // [styles.resized]: resized || !!image.resizedDataUrl,
             [styles.selected]: isSelected,
           })}
           onClick={handleImgClick(image, index)}
@@ -208,5 +201,31 @@ export const LocalImage: FC<LocalImageProps> = ({
         )}
       </div>
     </>
+  );
+};
+
+const OriginalImage: FC<{ image: ImageWithDefinitions; reset: () => void }> = ({
+  image,
+  reset,
+}) => {
+  const ref = useRef<HTMLImageElement>(null);
+  useEffect(() => {
+    if (ref && ref.current) {
+      let y = window.scrollY;
+      if (y < 48) {
+        y = 48;
+      }
+      ref.current.style.top = `${y}px`;
+    }
+  }, [ref]);
+  return createPortal(
+    <img
+      ref={ref}
+      src={`file://${image.src}`}
+      alt={image.src}
+      onClick={reset}
+      className={styles.originalImage}
+    />,
+    document.getElementById('bigImagePortal')
   );
 };

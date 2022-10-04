@@ -1,32 +1,23 @@
 .page {
   height: 100%;
 }
+.bigImagePortal {
+  position: absolute;
+  z-index: 10;
+  top: 0;
+  left: 0;
+}
 
 .layout {
   display: grid;
-  grid-template-columns: 196px auto;
-}
-.sidebar {
-  background: gray;
-}
-.sidebar > div {
-  position: sticky;
-  top: 72px;
-  max-height: calc(100vh - 72px);
-  overflow: auto;
-}
-
-.selectedImage {
-  border: 1px solid transparent;
-  max-width: 90px;
-  margin: 4px;
-}
-.selectedImage.subSelected {
-  border-color: rgb(17, 118, 250);
+  margin-top: 48px;
+  gap: 10px;
+  grid-template-columns: 211px auto;
 }
 
 .navigation {
-  position: sticky;
+  position: fixed;
+  width: 100vw;
   top: 0;
   z-index: 1000;
   background: white;

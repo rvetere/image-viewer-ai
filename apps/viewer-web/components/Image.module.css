@@ -1,14 +1,18 @@
 .image {
-  border: 2px solid rgb(188, 125, 125);
+  border: 4px solid transparent;
   display: block;
-  grid-row: 1 / -1;
-  grid-column: 1;
+  width: 100%;
 }
 .image.resized {
   border-color: rgb(141, 202, 83);
 }
 .image.selected {
-  border-color: rgb(25, 101, 214) !important;
+  border-color: rgb(0, 136, 255) !important;
+}
+.originalImage {
+  position: absolute;
+  z-index: 11;
+  box-shadow: 5px 5px 50px 10px black;
 }
 .hidden {
   display: none !important;
@@ -18,10 +22,8 @@
   right: 0;
 }
 .imageContainer {
+  width: 100%;
   position: relative;
-  display: grid;
-  margin: 8px;
-  grid-template-rows: 1fr auto;
 }
 .imageOriginal {
   border: 2px solid pink;
@@ -31,9 +33,10 @@
   font-size: 12px;
   text-shadow: 1px 1px 2px #333;
 }
-
 .predictions {
-  position: relative;
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
 }
 
 .predictions span {
@@ -52,6 +55,8 @@
 
 .openBig {
   position: absolute;
-  right: -2px;
-  top: 2px;
+  right: 4px;
+  top: 4px;
+  text-transform: uppercase;
+  font-size: 11px;
 }

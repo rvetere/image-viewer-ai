@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 import classNames from 'classnames';
 import * as nsfwjs from 'nsfwjs';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -8,7 +7,9 @@ import {
   LocalImage,
   NudityResponse,
 } from '../components/Image';
+import Masonry, { ResponsiveMasonry } from 'react-responsive-masonry';
 import styles from './index.module.css';
+import { Sidebar } from '../components/sidebar/sidebar';
 
 const BATCH_SIZE = 400;
 
@@ -58,7 +59,7 @@ export function Index() {
     }
   }, []);
 
-  const storeNudityMap = (_nudityMap) => {
+  const storeNudityMap = (_nudityMap: Map<string, NudityResponse>) => {
     const serialize = {};
     for (const [key, value] of _nudityMap.entries()) {
       if (value && typeof value !== 'string') {
@@ -119,7 +120,7 @@ export function Index() {
       // @ts-expect-error bla
       const existing = await window.electron.getData(`${hashCode(dir)}.json`);
       setBrowsingDir(dir);
-      console.log({ dir, len: imagePaths.length });
+      console.log({ dir, len: imagePaths });
 
       let existingDefs = existing ? JSON.parse(existing) : [];
       if (existingDefs.length > imagePaths.length) {
@@ -127,7 +128,24 @@ export function Index() {
           imagePaths.map((i) => i.src).includes(existing.src)
         );
       }
-      let imagesWithDefsFinal = existingDefs;
+      let imagesWithDefsFinal = existingDefs.map((existing) => {
+        const image = imagePaths.find((i) => i.src === existing.src);
+        if (image.resizedDataUrl && !existing.resizedDataUrl) {
+          const maxWidth = 600;
+          const height = Math.round(
+            (existing.size.height / existing.size.width) * maxWidth
+          );
+          return {
+            ...existing,
+            size: {
+              width: maxWidth,
+              height,
+            },
+            resizedDataUrl: image.resizedDataUrl,
+          };
+        }
+        return existing;
+      });
 
       const batches = getBatches(imagePaths);
       const batchCount = batches.length;
@@ -181,6 +199,13 @@ export function Index() {
 
       setImages(imagesWithDefsFinal);
       setCount(imagesWithDefsFinal.length);
+
+      // @ts-expect-error bla
+      window.electron
+        .storeData(`${hashCode(dir)}.json`, JSON.stringify(imagesWithDefsFinal))
+        .then((results) => {
+          console.log('Stored data', { results });
+        });
 
       setWorking(false);
       setProgress(0);
@@ -357,11 +382,11 @@ export function Index() {
 
         console.log('new size of nudity map:', newNudityMap.size);
 
-        if (newNudityMap.size < count) {
-          setTimeout(() => {
-            handleNudityApi(newNudityMap)();
-          }, 3000);
-        }
+        // if (newNudityMap.size < count) {
+        //   setTimeout(() => {
+        //     handleNudityApi(newNudityMap)();
+        //   }, 3000);
+        // }
       });
   };
 
@@ -398,29 +423,6 @@ export function Index() {
     return cloud;
   }, [images]);
 
-  const handleDelete = () => {
-    // @ts-expect-error bla
-    window.electron.deleteImage(subSelected).then((results) => {
-      const newNudityMap = new Map<string, NudityResponse>();
-      for (const [key, value] of nudityMap.entries()) {
-        if (!selected.includes(key)) {
-          newNudityMap.set(key, value);
-        }
-      }
-      storeNudityMap(newNudityMap);
-
-      const newSubSelected = subSelected.filter(
-        (src) => !subSelected.includes(src)
-      );
-      setSubSelected(newSubSelected);
-      const newSelected = selected.filter((src) => !subSelected.includes(src));
-      setSelected(newSelected);
-      const newImages = images.filter(
-        (image) => !subSelected.includes(image.src)
-      );
-      setImages(newImages);
-    });
-  };
   const [selectStartIndex, setSelectStartIndex] = useState(-1);
   const handleSelect = (index: number) => (event: any) => {
     if (selectStartIndex === -1) {
@@ -456,6 +458,7 @@ export function Index() {
 
   return (
     <div className={classNames(styles.page, { [styles.working]: working })}>
+      <div id="bigImagePortal" className={styles.bigImagePortal} />
       <div className={styles.navigation}>
         {model && <button onClick={handleBrowse}>Browse</button>}
         <div className={styles.counter}>{count}x</div>
@@ -542,92 +545,58 @@ export function Index() {
         </div>
       </div>
       <div className={styles.layout}>
-        <div className={styles.sidebar}>
-          <div>
-            {selected.length > 0 && (
-              <>
-                {selected.map((src) => {
-                  const image = images.find((image) => image.src === src);
-                  return (
-                    <img
-                      key={src}
-                      title={`${image.size.width}x${image.size.height}`}
-                      src={`file://${image?.resizedDataUrl || image?.src}`}
-                      alt={src}
-                      className={classNames(styles.selectedImage, {
-                        [styles.subSelected]: subSelected.includes(src),
-                      })}
-                      onClick={(event: any) => {
-                        if (event.shiftKey) {
-                          const alreadySelected = selected.includes(src);
-                          if (!alreadySelected) {
-                            setSelected([...selected, src]);
-                          } else {
-                            setSelected(
-                              selected.filter((_src) => _src !== src)
-                            );
-                          }
-                        } else {
-                          const isSelected = subSelected.includes(src);
-                          if (!isSelected) {
-                            setSubSelected([...subSelected, src]);
-                          } else {
-                            setSubSelected(
-                              subSelected.filter((s) => s !== src)
-                            );
-                          }
-                        }
-                      }}
-                    />
-                  );
-                })}
-                {subSelected.length > 0 && (
-                  <div>
-                    <button onClick={handleDelete}>Delete</button>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-        <div className={styles.list}>
-          {progress > 0 && <div style={{ marginRight: 8 }}>{progress}%</div>}
-          {images
-            .filter(filterFn)
-            .sort((a, b) => {
-              const sizeA = a.size.width * a.size.height;
-              const sizeB = b.size.width * b.size.height;
-              if (sizeA > sizeB) {
-                return -1;
-              } else if (sizeA < sizeB) {
-                return 1;
-              }
-              return 0;
-            })
-            .sort((a, b) => {
-              if (filter === 'buttocksOnly') {
-                return sortWithFilter('buttocks')(a, b);
-              } else if (filter === 'breastsOnly') {
-                return sortWithFilter('breast')(a, b);
-              } else if (filter !== 'all' && filter !== 'sexyOnly') {
-                return sortWithFilter(filter)(a, b);
-              }
-              return 0;
-            })
-            .map((image, index) => (
-              <LocalImage
-                key={`image-${index}`}
-                index={index}
-                image={image}
-                nudityMap={nudityMap}
-                setNudityMap={setNudityMap}
-                selected={selected}
-                setSelected={setSelected}
-                showBoundingBox={showBoundingBox}
-                handleSelect={handleSelect}
-              />
-            ))}
-        </div>
+        <Sidebar
+          subSelected={subSelected}
+          storeNudityMap={storeNudityMap}
+          images={images}
+          nudityMap={nudityMap}
+          progress={progress}
+          selected={selected}
+          setImages={setImages}
+          setSelected={setSelected}
+          setSubSelected={setSubSelected}
+        />
+        <ResponsiveMasonry
+          columnsCountBreakPoints={{ 350: 1, 750: 2, 900: 3, 3000: 4 }}
+        >
+          <Masonry gutter="10px">
+            {images
+              .filter(filterFn)
+              .sort((a, b) => {
+                const sizeA = a.size.width * a.size.height;
+                const sizeB = b.size.width * b.size.height;
+                if (sizeA > sizeB) {
+                  return -1;
+                } else if (sizeA < sizeB) {
+                  return 1;
+                }
+                return 0;
+              })
+              .sort((a, b) => {
+                if (filter === 'buttocksOnly') {
+                  return sortWithFilter('buttocks')(a, b);
+                } else if (filter === 'breastsOnly') {
+                  return sortWithFilter('breast')(a, b);
+                } else if (filter !== 'all' && filter !== 'sexyOnly') {
+                  return sortWithFilter(filter)(a, b);
+                }
+                return 0;
+              })
+              .map((image, index) => (
+                <LocalImage
+                  key={`image-${index}`}
+                  index={index}
+                  image={image}
+                  nudityMap={nudityMap}
+                  setNudityMap={setNudityMap}
+                  selected={selected}
+                  setSelected={setSelected}
+                  showBoundingBox={showBoundingBox}
+                  handleSelect={handleSelect}
+                />
+              ))}
+          </Masonry>
+        </ResponsiveMasonry>
       </div>
     </div>
   );
