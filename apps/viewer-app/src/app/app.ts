@@ -85,10 +85,11 @@ export default class App {
         properties: ['openDirectory'],
       });
 
-      const pattern = `${path.filePaths[0]}\\**\\*.(jpg|jpeg|png|webp|gif)`.replace(
-        /\\/gi,
-        '/'
-      );
+      const pattern =
+        `${path.filePaths[0]}\\**\\*.(jpg|jpeg|png|webp|gif)`.replace(
+          /\\/gi,
+          '/'
+        );
       console.log({ pattern: pattern });
 
       const entries = await fg([pattern], { dot: false });
@@ -102,6 +103,8 @@ export default class App {
       const aResizedFileExists = fs.existsSync(
         `${appDataPath}/image-viewer/resized/${hashCode(entries[0])}.jpg`
       );
+
+      console.log({ entries });
 
       if (!aResizedFileExists) {
         for (let i = 0, len = entries.length; i < len; i++) {
@@ -203,7 +206,7 @@ export default class App {
 
 const hashCode = (input: string) => {
   if (!input) {
-    return -1
+    return -1;
   }
   let hash = 0,
     i,

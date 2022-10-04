@@ -10,6 +10,9 @@
 .image.selected {
   border-color: rgb(25, 101, 214) !important;
 }
+.hidden {
+  display: none !important;
+}
 .sizeInfo {
   position: absolute;
   right: 0;
@@ -20,7 +23,9 @@
   margin: 8px;
   grid-template-rows: 1fr auto;
 }
-
+.imageOriginal {
+  border: 2px solid pink;
+}
 .text {
   color: white;
   font-size: 12px;

@@ -66,28 +66,35 @@ export const LocalImage: FC<LocalImageProps> = ({
 
   const imgRef = useRef<HTMLImageElement>();
 
-  const handleImgClick = (image: ImageWithDefinitions) => () => {
-    const alreadySelected = selected.includes(image.src);
-    if (!alreadySelected) {
-      setSelected([...selected, image.src]);
-    } else {
-      setSelected(selected.filter((src) => src !== image.src));
-    }
+  const [showOriginal, setShowOriginal] = useState(false);
+  const handleImgClick =
+    (image: ImageWithDefinitions, isResized: boolean) => (event: any) => {
+      if (event.shiftKey && isResized) {
+        setShowOriginal(true);
+        return;
+      }
 
-    const imagePath = image.resizedDataUrl ? image.resizedDataUrl : image.src;
-    if (!nudityMap.has(imagePath)) {
-      // @ts-expect-error bla
-      window.electron.nudityAi(imagePath).then((result) => {
-        setNudityMap((prev) => {
-          const newMap = new Map(prev);
-          newMap.set(imagePath, result);
-          return newMap;
+      const alreadySelected = selected.includes(image.src);
+      if (!alreadySelected) {
+        setSelected([...selected, image.src]);
+      } else {
+        setSelected(selected.filter((src) => src !== image.src));
+      }
+
+      const imagePath = image.resizedDataUrl ? image.resizedDataUrl : image.src;
+      if (!nudityMap.has(imagePath)) {
+        // @ts-expect-error bla
+        window.electron.nudityAi(imagePath).then((result) => {
+          setNudityMap((prev) => {
+            const newMap = new Map(prev);
+            newMap.set(imagePath, result);
+            return newMap;
+          });
         });
-      });
-    } else {
-      console.log(nudityMap.get(imagePath));
-    }
-  };
+      } else {
+        console.log(nudityMap.get(imagePath));
+      }
+    };
 
   const extension = image.src.split('.').pop();
   let resized = false;
@@ -106,59 +113,80 @@ export const LocalImage: FC<LocalImageProps> = ({
 
   const isSelected = selected.includes(image.src);
   return (
-    <div style={{ width, height }} className={styles.imageContainer}>
-      {showBoundingBox &&
-        nudity &&
-        nudity.output &&
-        nudity.output.detections.map((detection, index) => (
-          <div
-            key={`box-${index}`}
-            className={styles.boundingBox}
-            style={{
-              pointerEvents: 'none',
-              position: 'absolute',
-              border: `1px solid ${getBoundingBoxColor(index)}`,
-              left: detection.bounding_box[0] * ratio,
-              top: detection.bounding_box[1] * ratio,
-              width: detection.bounding_box[2] * ratio,
-              height: detection.bounding_box[3] * ratio,
-            }}
-          >
-            <span>
-              {detection.name}
-              <sup>{detection.confidence}</sup>
-            </span>
-          </div>
-        ))}
-      <img
-        ref={imgRef}
-        src={
-          image.resizedDataUrl
-            ? `file://${image.resizedDataUrl}`
-            : `file://${image.src}`
-        }
-        style={{ maxWidth: width + 4 }}
-        loading="lazy"
-        alt={image.src}
-        className={classNames(styles.image, {
-          [styles.resized]: resized || !!image.resizedDataUrl,
-          [styles.selected]: isSelected,
+    <>
+      {showOriginal && (
+        <div className={styles.imageOriginal}>
+          <img
+            src={`file://${image.src}`}
+            alt={image.src}
+            onClick={() => setShowOriginal(false)}
+          />
+        </div>
+      )}
+      <div
+        style={{ width, height }}
+        className={classNames(styles.imageContainer, {
+          [styles.hidden]: showOriginal,
         })}
-        onClick={handleImgClick(image)}
-      />
-
-      <div className={classNames(styles.text, styles.sizeInfo)}>
-        {width}x{height}
-      </div>
-      <div className={classNames(styles.text, styles.predictions)}>
-        {image.predictions &&
-          image.predictions.map((p, index) => (
-            <span key={`prediction-${index}`}>
-              {p.className}
-              <sup>{p.probability.toFixed(2)}</sup>
-            </span>
+      >
+        {showBoundingBox &&
+          !showOriginal &&
+          nudity &&
+          nudity.output &&
+          nudity.output.detections.map((detection, index) => (
+            <div
+              key={`box-${index}`}
+              className={styles.boundingBox}
+              style={{
+                pointerEvents: 'none',
+                position: 'absolute',
+                border: `1px solid ${getBoundingBoxColor(index)}`,
+                left: detection.bounding_box[0] * ratio,
+                top: detection.bounding_box[1] * ratio,
+                width: detection.bounding_box[2] * ratio,
+                height: detection.bounding_box[3] * ratio,
+              }}
+            >
+              <span>
+                {detection.name}
+                <sup>{detection.confidence}</sup>
+              </span>
+            </div>
           ))}
+        <img
+          ref={imgRef}
+          src={
+            image.resizedDataUrl
+              ? `file://${image.resizedDataUrl}`
+              : `file://${image.src}`
+          }
+          style={{ maxWidth: width + 4 }}
+          loading="lazy"
+          alt={image.src}
+          className={classNames(styles.image, {
+            [styles.resized]: resized || !!image.resizedDataUrl,
+            [styles.selected]: isSelected,
+          })}
+          onClick={handleImgClick(image, resized || !!image.resizedDataUrl)}
+        />
+
+        {!(resized || !!image.resizedDataUrl) && (
+          <div className={classNames(styles.text, styles.sizeInfo)}>
+            {width}x{height}
+          </div>
+        )}
+        {!showOriginal && (
+          <div className={classNames(styles.text, styles.predictions)}>
+            {image.predictions &&
+              image.predictions.map((p, index) => (
+                <span key={`prediction-${index}`}>
+                  {p.className}
+                  <sup>{p.probability.toFixed(2)}</sup>
+                </span>
+              ))}
+          </div>
+        )}
       </div>
-    </div>
+    </>
   );
 };

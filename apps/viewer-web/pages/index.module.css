@@ -4,18 +4,23 @@
 
 .layout {
   display: grid;
-  grid-gap: 20px;
-  grid-template-columns: 250px auto;
+  grid-template-columns: 350px auto;
 }
-
+.sidebar {
+  background: gray;
+}
 .sidebar > div {
   position: sticky;
   top: 100px;
 }
 
 .selectedImage {
-  max-width: 70px;
+  border: 1px solid transparent;
+  max-width: 90px;
   margin: 4px;
+}
+.selectedImage.subSelected {
+  border-color: rgb(17, 118, 250);
 }
 
 .navigation {
@@ -30,9 +35,8 @@
 }
 
 .counter {
-  position: absolute;
-  right: 0;
-  top: 0;
+  display: inline-block;
+  margin-left: 12px;
 }
 
 .working::after {

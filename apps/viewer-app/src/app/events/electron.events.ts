@@ -23,6 +23,21 @@ ipcMain.handle('get-app-version', (event) => {
   return environment.version;
 });
 
+ipcMain.handle('delete-image', (event, paths) => {
+  paths.forEach((path) => {
+    console.log('Deleting image: ', path.trim());
+
+    if (fs.existsSync(path.trim())) {
+      console.log('Exists, delete now..');
+
+      fs.unlinkSync(path.trim());
+    } else {
+      console.log('Does not Exists, skip!');
+    }
+  });
+  return true;
+});
+
 ipcMain.handle('nudity-ai', async (event, path) => {
   console.log(`Fetching nudity DeepAI: "${path}"`);
 

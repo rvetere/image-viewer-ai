@@ -6,5 +6,6 @@ contextBridge.exposeInMainWorld('electron', {
   nudityAi: (path: string) => ipcRenderer.invoke('nudity-ai', path),
   nudityAiBulk: (paths: string[]) =>
     ipcRenderer.invoke('nudity-ai-bulk', paths),
+  deleteImage: (paths: string[]) => ipcRenderer.invoke('delete-image', paths),
   platform: process.platform,
 });

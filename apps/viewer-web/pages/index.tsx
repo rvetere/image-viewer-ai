@@ -83,9 +83,13 @@ export function Index() {
   const [progress, setProgress] = useState(0);
 
   const [selected, setSelected] = useState<string[]>([]);
+  const [subSelected, setSubSelected] = useState<string[]>([]);
   const [images, setImages] = useState<ImageWithDefinitions[]>([]);
   const handleBrowse = () => {
     setWorking(true);
+    setSelected([]);
+    setSubSelected([]);
+    setImages([]);
     // @ts-expect-error bla
     window.electron.browse().then(async ([dir, imagePaths]) => {
       console.log({ dir, len: imagePaths.length });
@@ -96,7 +100,12 @@ export function Index() {
       const existingData = localStorage.getItem('images')
         ? JSON.parse(localStorage.getItem('images'))
         : {};
-      const existingDefs = existingData[dir] || [];
+      let existingDefs = existingData[dir] || [];
+      if (existingDefs.length > imagePaths.length) {
+        existingDefs = existingDefs.filter((existing) =>
+          imagePaths.includes(existing.src)
+        );
+      }
       let imagesWithDefsFinal = existingDefs;
       while (batches.length) {
         const batch = batches.shift();
@@ -335,11 +344,27 @@ export function Index() {
     return cloud;
   }, [images]);
 
+  const handleDelete = () => {
+    // @ts-expect-error bla
+    window.electron.deleteImage(subSelected).then((results) => {
+      const newSubSelected = subSelected.filter(
+        (src) => !subSelected.includes(src)
+      );
+      setSubSelected(newSubSelected);
+      const newSelected = selected.filter((src) => !subSelected.includes(src));
+      setSelected(newSelected);
+      const newImages = images.filter(
+        (image) => !subSelected.includes(image.src)
+      );
+      setImages(newImages);
+    });
+  };
+
   return (
     <div className={classNames(styles.page, { [styles.working]: working })}>
       <div className={styles.navigation}>
-        {progress > 0 && <div style={{ marginRight: 8 }}>{progress}%</div>}
         {model && <button onClick={handleBrowse}>Browse</button>}
+        <div className={styles.counter}>{count}x</div>
         <div className={styles.mainFunctions}>
           {images.length > 0 && (
             <button
@@ -382,17 +407,12 @@ export function Index() {
           {count > 0 && filter === 'sexyOnly' && (
             <button onClick={handleNudityApi(nudityMap)}>Run Nudity API</button>
           )}
-        </div>
 
-        {count > 0 && filter === 'sexyOnly' && (
-          <button onClick={handleNudityApi(nudityMap)}>Run Nudity API</button>
-        )}
-        {Object.entries(wordCloud)
-          .sort(([_aName, aConfidence], [_bName, bConfidence]) => {
-            return bConfidence - aConfidence;
-          })
-          .map(([name, _confidence]) => {
-
+          {Object.entries(wordCloud)
+            .sort(([_aName, aConfidence], [_bName, bConfidence]) => {
+              return bConfidence - aConfidence;
+            })
+            .map(([name, _confidence]) => {
               return (
                 <button
                   key={name}
@@ -406,8 +426,6 @@ export function Index() {
               );
             })}
         </div>
-
-        <div className={styles.counter}>{count}x</div>
       </div>
       <div className={styles.layout}>
         <div className={styles.sidebar}>
@@ -419,17 +437,47 @@ export function Index() {
                   return (
                     <img
                       key={src}
-                      className={styles.selectedImage}
+                      title={`${image.size.width}x${image.size.height}`}
                       src={`file://${image?.resizedDataUrl || image?.src}`}
                       alt={src}
+                      className={classNames(styles.selectedImage, {
+                        [styles.subSelected]: subSelected.includes(src),
+                      })}
+                      onClick={(event: any) => {
+                        if (event.shiftKey) {
+                          const alreadySelected = selected.includes(src);
+                          if (!alreadySelected) {
+                            setSelected([...selected, src]);
+                          } else {
+                            setSelected(
+                              selected.filter((_src) => _src !== src)
+                            );
+                          }
+                        } else {
+                          const isSelected = subSelected.includes(src);
+                          if (!isSelected) {
+                            setSubSelected([...subSelected, src]);
+                          } else {
+                            setSubSelected(
+                              subSelected.filter((s) => s !== src)
+                            );
+                          }
+                        }
+                      }}
                     />
                   );
                 })}
+                {subSelected.length > 0 && (
+                  <div>
+                    <button onClick={handleDelete}>Delete</button>
+                  </div>
+                )}
               </>
             )}
           </div>
         </div>
         <div className={styles.list}>
+          {progress > 0 && <div style={{ marginRight: 8 }}>{progress}%</div>}
           {images
             .filter(filterFn)
             .sort((a, b) => {
