@@ -10,7 +10,7 @@ import {
 } from '../components/Image';
 import styles from './index.module.css';
 
-const BATCH_SIZE = 2000;
+const BATCH_SIZE = 400;
 
 type ImageDef = {
   size: { width: number; height: number };
@@ -124,7 +124,7 @@ export function Index() {
       let existingDefs = existing ? JSON.parse(existing) : [];
       if (existingDefs.length > imagePaths.length) {
         existingDefs = existingDefs.filter((existing) =>
-          imagePaths.includes(existing.src)
+          imagePaths.map((i) => i.src).includes(existing.src)
         );
       }
       let imagesWithDefsFinal = existingDefs;
@@ -357,11 +357,11 @@ export function Index() {
 
         console.log('new size of nudity map:', newNudityMap.size);
 
-        //if (newNudityMap.size < count) {
-        //  setTimeout(() => {
-        //    handleNudityApi(newNudityMap)();
-        //  }, 3000);
-        //}
+        if (newNudityMap.size < count) {
+          setTimeout(() => {
+            handleNudityApi(newNudityMap)();
+          }, 3000);
+        }
       });
   };
 
@@ -451,10 +451,8 @@ export function Index() {
         .filter((image, idx) => idx >= selectStartIndex && idx <= index)
         .map((image) => image.src);
       setSelected(newSelected);
-      console.log('multi select!', selectStartIndex, index);
     }
   };
-  console.log({ selected });
 
   return (
     <div className={classNames(styles.page, { [styles.working]: working })}>
