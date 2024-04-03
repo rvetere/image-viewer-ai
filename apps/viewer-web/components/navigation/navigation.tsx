@@ -1,27 +1,17 @@
 import classNames from 'classnames';
 import { FunctionComponent, useMemo } from 'react';
-import {
-  useImageContext,
-  useImageOperations,
-} from '../../context/image.context';
-import { ImageFilter } from '../../context/types';
-import styles from './navigation.module.css';
+import { useAppContext, useAppOperations } from '../../context/appContext';
+import { useUiContext, useUiOperations } from '../../context/uiContext';
 import { useNudityApi } from '../../hooks/useNudityApi';
+import { ImageFilter } from '../../lib/types';
+import styles from './navigation.module.css';
 
 export const Navigation: FunctionComponent = () => {
-  const {
-    list,
-    model,
-    nudityMap,
-    uiState: { filter, format, onlyFaves, showBoundingBox },
-  } = useImageContext();
-  const {
-    setFilter,
-    setFormat,
-    setOnlyFaves,
-    setShowBoundingBox,
-    handleBrowse,
-  } = useImageOperations();
+  const { list, model, nudityMap } = useAppContext();
+  const { filter, format, onlyFaves, showBoundingBox } = useUiContext();
+  const { handleBrowse } = useAppOperations();
+  const { setFilter, setFormat, setOnlyFaves, setShowBoundingBox } =
+    useUiOperations();
   const { handleRunNudityApi } = useNudityApi();
 
   const handleFilterSexyOnly = () => {

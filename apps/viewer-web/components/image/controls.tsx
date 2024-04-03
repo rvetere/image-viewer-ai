@@ -1,10 +1,7 @@
 import classNames from 'classnames';
-import { Dispatch, FC, SetStateAction } from 'react';
-import {
-  useImageContext,
-  useImageOperations,
-} from '../../context/image.context';
-import { ImageWithDefinitions } from '../../context/types';
+import { Dispatch, FunctionComponent, SetStateAction } from 'react';
+import { useAppContext, useAppOperations } from '../../context/appContext';
+import { ImageWithDefinitions } from '../../lib/types';
 import styles from './controls.module.css';
 
 interface IControlsProps {
@@ -13,13 +10,13 @@ interface IControlsProps {
   setShowOriginal: Dispatch<SetStateAction<boolean>>;
 }
 
-export const Controls: FC<IControlsProps> = ({
+export const Controls: FunctionComponent<IControlsProps> = ({
   image,
   showOriginal,
   setShowOriginal,
 }) => {
-  const { favorites } = useImageContext();
-  const { handleFavorite } = useImageOperations();
+  const { favorites } = useAppContext();
+  const { handleFavorite } = useAppOperations();
   return (
     <>
       <button

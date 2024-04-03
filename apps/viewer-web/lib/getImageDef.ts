@@ -1,5 +1,5 @@
 import * as nsfwjs from 'nsfwjs';
-import { BrowseResponse } from '../context/types';
+import { BrowseResponse } from './types';
 
 type ImageDef = {
   size: { width: number; height: number };

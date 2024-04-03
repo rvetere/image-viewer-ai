@@ -1,12 +1,10 @@
 /* eslint-disable @next/next/no-img-element */
 import classNames from 'classnames';
-import { FC, MouseEvent, useState } from 'react';
+import { FunctionComponent, MouseEvent, useState } from 'react';
 import { useInView } from 'react-intersection-observer';
-import {
-  useImageContext,
-  useImageOperations,
-} from '../../context/image.context';
-import { ImageWithDefinitions } from '../../context/types';
+import { useAppContext } from '../../context/appContext';
+import { ImageWithDefinitions } from '../../lib/types';
+import { useUiContext, useUiOperations } from '../../context/uiContext';
 import { Controls } from './controls';
 import styles from './image.module.css';
 import { NudityBoundingBoxes } from './nudityBoundingBox';
@@ -17,14 +15,15 @@ type LocalImageProps = {
   image: ImageWithDefinitions;
 };
 
-export const LocalImage: FC<LocalImageProps> = ({ image, index }) => {
-  const {
-    nudityMap,
-    uiState: { selected },
-  } = useImageContext();
+export const LocalImage: FunctionComponent<LocalImageProps> = ({
+  image,
+  index,
+}) => {
+  const { nudityMap } = useAppContext();
+  const { selected } = useUiContext();
   const src = image.resizedDataUrl ?? image.src;
 
-  const { setSelected, handleSelect } = useImageOperations();
+  const { setSelected, handleSelect } = useUiOperations();
 
   const [showOriginal, setShowOriginal] = useState(false);
   const { ref, inView } = useInView({

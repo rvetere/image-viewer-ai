@@ -1,7 +1,8 @@
 import { AppProps } from 'next/app';
 import Head from 'next/head';
 import './styles.css';
-import { ImageContextProvider } from '../context/image.context';
+import { AppContextProvider } from '../context/appContext';
+import { UiContextProvider } from '../context/uiContext';
 
 function CustomApp({ Component, pageProps }: AppProps) {
   return (
@@ -10,9 +11,11 @@ function CustomApp({ Component, pageProps }: AppProps) {
         <title>Welcome to viewer-web!</title>
       </Head>
       <main className="app">
-        <ImageContextProvider>
-          <Component {...pageProps} />
-        </ImageContextProvider>
+        <AppContextProvider>
+          <UiContextProvider>
+            <Component {...pageProps} />
+          </UiContextProvider>
+        </AppContextProvider>
       </main>
     </>
   );

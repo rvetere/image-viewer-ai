@@ -1,23 +1,17 @@
 /* eslint-disable @next/next/no-img-element */
 import classNames from 'classnames';
 import { FunctionComponent, useState } from 'react';
-import {
-  useImageContext,
-  useImageOperations,
-} from '../../context/image.context';
-import { NudityResponse } from '../../context/types';
-import { hashCode } from '../../helpers/hashCode';
+import { useAppContext, useAppOperations } from '../../context/appContext';
+import { useUiContext, useUiOperations } from '../../context/uiContext';
+import { hashCode } from '../../lib/hashCode';
+import { NudityResponse } from '../../lib/types';
 import styles from './sidebar.module.css';
 
 export const Sidebar: FunctionComponent = () => {
-  const {
-    images,
-    nudityMap,
-    uiState: { selected, subSelected, progress },
-    browsingDir,
-  } = useImageContext();
-  const { setNudityMap, setSelected, setSubSelected, setImages } =
-    useImageOperations();
+  const { images, nudityMap, browsingDir } = useAppContext();
+  const { selected, subSelected, progress } = useUiContext();
+  const { setImages, setNudityMap } = useAppOperations();
+  const { setSelected, setSubSelected } = useUiOperations();
 
   const [sureToDelete, setSureToDelete] = useState(false);
   const handleDelete = () => {

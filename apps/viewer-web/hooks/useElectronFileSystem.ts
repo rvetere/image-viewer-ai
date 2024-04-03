@@ -1,7 +1,7 @@
 import { Dispatch, useCallback, useEffect } from 'react';
-import { hashCode } from '../../helpers/hashCode';
-import { ImageContextAction } from '../image.context';
-import { NudityResponse } from '../types';
+import { AppContextAction } from '../context/appContext';
+import { hashCode } from '../lib/hashCode';
+import { NudityResponse } from '../lib/types';
 
 type UseFilterAndSortParams = {
   browsingDir: string;
@@ -11,7 +11,7 @@ type UseFilterAndSortParams = {
 
 export const useElectronFileSystem = (
   { browsingDir, nudityMap, favorites }: UseFilterAndSortParams,
-  dispatch: Dispatch<ImageContextAction>
+  dispatch: Dispatch<AppContextAction>
 ) => {
   const storeNudityMap = useCallback(
     (_nudityMap: Map<string, NudityResponse>) => {

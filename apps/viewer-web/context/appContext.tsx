@@ -1,153 +1,108 @@
 import * as nsfwjs from 'nsfwjs';
 import type { FunctionComponent, MouseEvent, ReactNode } from 'react';
-import { createContext, useContext, useMemo, useReducer } from 'react';
-import { getImageDef } from '../helpers/getImageDef';
-import { hashCode } from '../helpers/hashCode';
-import { storeDataOnFileSystem } from '../helpers/storeDataOnFileSystem';
-import { useUiLogic } from './hooks/useUiLogic';
 import {
-  ImageFilter,
-  ImageFormat,
-  ImageWithDefinitions,
-  NudityResponse,
-} from './types';
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useReducer,
+} from 'react';
+import { ImageWithDefinitions, NudityResponse } from '../lib/types';
+import { useElectronFileSystem } from '../hooks/useElectronFileSystem';
+import { hashCode } from '../lib/hashCode';
+import { getImageDef } from '../lib/getImageDef';
+import { storeDataOnFileSystem } from '../lib/storeDataOnFileSystem';
 
-export interface IImageContext {
+export interface IAppContext {
+  working: boolean;
   model: nsfwjs.NSFWJS;
   browsingDir: string | null;
   list: ImageWithDefinitions[];
   nudityMap: Map<string, NudityResponse>;
   images: ImageWithDefinitions[];
   favorites: string[];
-  uiState: {
-    working: boolean;
-    progress: number;
-    selected: string[];
-    subSelected: string[];
-    selectStartIndex: number;
-    filter: ImageFilter;
-    format: ImageFormat;
-    onlyFaves: boolean;
-    showBoundingBox: boolean;
-  };
 }
 
-export interface IImageOperationsContext {
-  setFilter: (filter: ImageFilter) => void;
-  setFormat: (filter: ImageFormat) => void;
-  setOnlyFaves: (onlyFaves: boolean) => void;
-  setShowBoundingBox: (showBoundingBox: boolean) => void;
+export interface IAppOperationsContext {
   setWorking: (working: boolean) => void;
+  setList: (list: ImageWithDefinitions[]) => void;
   setFavorites: (favorites: string[]) => void;
-  setSelected: (selected: string[]) => void;
-  setSubSelected: (subSelected: string[]) => void;
   setNudityMap: (nudityMap: Map<string, NudityResponse>) => void;
   setImages: (images: ImageWithDefinitions[]) => void;
   handleFavorite: (
     image: ImageWithDefinitions
   ) => (event: MouseEvent<HTMLButtonElement>) => void;
-  handleSelect: (
-    index: number
-  ) => (event: MouseEvent<HTMLImageElement>) => void;
   handleBrowse: () => void;
   handleReset: () => void;
 }
 
-export type ImageContextAction =
+export type AppContextAction =
+  | { type: 'SET_WORKING'; payload: boolean }
   | { type: 'SET_MODEL'; payload: nsfwjs.NSFWJS }
   | { type: 'SET_NUDITY_MAP'; payload: Map<string, NudityResponse> }
-  | { type: 'SET_PROGRESS'; payload: number }
   | { type: 'SET_IMAGES'; payload: ImageWithDefinitions[] }
   | { type: 'SET_LIST'; payload: ImageWithDefinitions[] }
   | { type: 'BROWSE'; payload: { dir: string; imagePaths: string[] } }
-  | { type: 'SET_UI_STATE'; payload: Partial<IImageContext['uiState']> }
   | { type: 'SET_FAVORITES'; payload: string[] }
-  | { type: 'RESET_SELECTED' }
   | { type: 'RESET' };
 
-const initialState: IImageContext = {
+const initialState: IAppContext = {
+  working: false,
   model: {} as nsfwjs.NSFWJS,
   browsingDir: null,
   list: [],
   nudityMap: new Map<string, NudityResponse>(),
   images: [],
   favorites: [],
-  uiState: {
-    working: false,
-    progress: 0,
-    selected: [],
-    subSelected: [],
-    selectStartIndex: -1,
-    filter: 'sexyOnly',
-    format: 'all',
-    onlyFaves: false,
-    showBoundingBox: false,
-  },
 };
 
-function imageContextReducer(
-  state: IImageContext,
-  action: ImageContextAction
-): IImageContext {
+function appContextReducer(
+  state: IAppContext,
+  action: AppContextAction
+): IAppContext {
   switch (action.type) {
     case 'RESET':
       return initialState;
     case 'BROWSE': {
-      const newState: IImageContext = {
+      const newState: IAppContext = {
         ...initialState, // reset state on every new browse action
         browsingDir: action.payload.dir,
       };
       return newState;
     }
-    case 'SET_UI_STATE': {
-      const newState: IImageContext = {
+    case 'SET_WORKING': {
+      return {
         ...state,
-        uiState: { ...state.uiState, ...action.payload },
+        working: action.payload,
       };
-      return newState;
     }
     case 'SET_IMAGES': {
-      const newState: IImageContext = {
+      const newState: IAppContext = {
         ...state,
-        uiState: { ...state.uiState, working: false, progress: 0 },
         images: action.payload,
       };
       return newState;
     }
     case 'SET_LIST': {
-      const newState: IImageContext = {
+      const newState: IAppContext = {
         ...state,
         list: action.payload,
       };
       return newState;
     }
     case 'SET_FAVORITES': {
-      const newState: IImageContext = {
+      const newState: IAppContext = {
         ...state,
         favorites: action.payload,
       };
       return newState;
     }
     case 'SET_MODEL': {
-      const newState: IImageContext = { ...state, model: action.payload };
+      const newState: IAppContext = { ...state, model: action.payload };
       return newState;
     }
     case 'SET_NUDITY_MAP': {
-      const newState: IImageContext = { ...state, nudityMap: action.payload };
-      return newState;
-    }
-    case 'SET_PROGRESS': {
-      const newState: IImageContext = {
-        ...state,
-        uiState: { ...state.uiState, progress: action.payload },
-      };
-      return newState;
-    }
-    case 'RESET_SELECTED': {
-      const newState: IImageContext = {
-        ...state,
-        uiState: { ...state.uiState, selected: [], subSelected: [] },
-      };
+      const newState: IAppContext = { ...state, nudityMap: action.payload };
       return newState;
     }
     default:
@@ -155,42 +110,38 @@ function imageContextReducer(
   }
 }
 
-const ImageContext = createContext<IImageContext | undefined | null>(null);
+const AppContext = createContext<IAppContext | undefined | null>(null);
 
-const ImageOperationsContext = createContext<IImageOperationsContext | null>(
-  null
-);
+const AppOperationsContext = createContext<IAppOperationsContext | null>(null);
 
-export const ImageContextProvider: FunctionComponent<{
+export const AppContextProvider: FunctionComponent<{
   children: ReactNode;
 }> = ({ children }) => {
-  const [state, dispatch] = useReducer(imageContextReducer, initialState);
+  const [state, dispatch] = useReducer(appContextReducer, initialState);
 
-  useUiLogic(state, dispatch);
+  useElectronFileSystem(state, dispatch);
 
-  const {
-    model,
-    list,
-    favorites,
-    uiState: { selectStartIndex },
-  } = state;
+  // Load the NSFW model
+  useEffect(() => {
+    nsfwjs
+      .load()
+      .then((_model) => dispatch({ type: 'SET_MODEL', payload: _model }));
+  }, [dispatch]);
+
+  const { model, images, favorites } = state;
+  useEffect(() => {
+    if (images.length > 0) {
+      console.log('detected changes on "images", resetting working state..');
+      dispatch({ type: 'SET_WORKING', payload: false });
+    }
+  }, [images]);
   const operations = useMemo(
     () => ({
       handleReset: () => dispatch({ type: 'RESET' }),
-      setOnlyFaves: (onlyFaves: boolean) =>
-        dispatch({ type: 'SET_UI_STATE', payload: { onlyFaves } }),
-      setShowBoundingBox: (showBoundingBox: boolean) =>
-        dispatch({ type: 'SET_UI_STATE', payload: { showBoundingBox } }),
-      setFilter: (filter: ImageFilter) =>
-        dispatch({ type: 'SET_UI_STATE', payload: { filter } }),
-      setFormat: (format: ImageFormat) =>
-        dispatch({ type: 'SET_UI_STATE', payload: { format } }),
       setWorking: (working: boolean) =>
-        dispatch({ type: 'SET_UI_STATE', payload: { working } }),
-      setSelected: (selected: string[]) =>
-        dispatch({ type: 'SET_UI_STATE', payload: { selected } }),
-      setSubSelected: (subSelected: string[]) =>
-        dispatch({ type: 'SET_UI_STATE', payload: { subSelected } }),
+        dispatch({ type: 'SET_WORKING', payload: working }),
+      setList: (newList: ImageWithDefinitions[]) =>
+        dispatch({ type: 'SET_LIST', payload: newList }),
       setNudityMap: (nudityMap: Map<string, NudityResponse>) =>
         dispatch({ type: 'SET_NUDITY_MAP', payload: nudityMap }),
       setImages: (images: ImageWithDefinitions[]) =>
@@ -198,7 +149,7 @@ export const ImageContextProvider: FunctionComponent<{
       setFavorites: (favorites: string[]) =>
         dispatch({ type: 'SET_FAVORITES', payload: favorites }),
       handleBrowse: () => {
-        dispatch({ type: 'SET_UI_STATE', payload: { working: true } });
+        dispatch({ type: 'SET_WORKING', payload: true });
         console.log('🚀 Browsing..');
         // @ts-expect-error bla
         window.electron.browse().then(async ([dir, imagePaths]) => {
@@ -265,7 +216,7 @@ export const ImageContextProvider: FunctionComponent<{
               JSON.stringify(imagesWithDefsFinal)
             );
           } else {
-            dispatch({ type: 'SET_UI_STATE', payload: { working: false } });
+            dispatch({ type: 'SET_WORKING', payload: false });
           }
         });
       },
@@ -281,51 +232,34 @@ export const ImageContextProvider: FunctionComponent<{
             dispatch({ type: 'SET_FAVORITES', payload: newFavorites });
           }
         },
-      handleSelect:
-        (index: number) => (event: MouseEvent<HTMLImageElement>) => {
-          if (selectStartIndex === -1) {
-            dispatch({
-              type: 'SET_UI_STATE',
-              payload: { selectStartIndex: index },
-            });
-          } else if (event.shiftKey) {
-            const newSelected = list
-              .filter((_image, idx) => idx >= selectStartIndex && idx <= index)
-              .map((image) => image.src);
-            dispatch({
-              type: 'SET_UI_STATE',
-              payload: { selected: newSelected },
-            });
-          }
-        },
     }),
-    [model, list, selectStartIndex, favorites]
+    [favorites, model]
   );
 
   return (
-    <ImageContext.Provider value={state}>
-      <ImageOperationsContext.Provider value={operations}>
+    <AppContext.Provider value={state}>
+      <AppOperationsContext.Provider value={operations}>
         {children}
-      </ImageOperationsContext.Provider>
-    </ImageContext.Provider>
+      </AppOperationsContext.Provider>
+    </AppContext.Provider>
   );
 };
 
-export const useImageContext = () => {
-  const context = useContext(ImageContext);
+export const useAppContext = () => {
+  const context = useContext(AppContext);
 
   if (context === null) {
-    throw new Error('Must be within ImageContextProvider');
+    throw new Error('Must be within AppContextProvider');
   }
 
   return context;
 };
 
-export const useImageOperations = () => {
-  const context = useContext(ImageOperationsContext);
+export const useAppOperations = () => {
+  const context = useContext(AppOperationsContext);
 
   if (!context) {
-    throw new Error('Must be within ImageContextProvider');
+    throw new Error('Must be within AppContextProvider');
   }
 
   return context;

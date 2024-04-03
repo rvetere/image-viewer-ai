@@ -3,10 +3,10 @@
  * between the frontend to the electron backend.
  */
 
-import { app, ipcMain } from 'electron';
-import { environment } from '../../environments/environment';
-import * as fs from 'fs';
 import * as deepAi from 'deepai';
+import { app, ipcMain } from 'electron';
+import * as fs from 'fs';
+import { environment } from '../../environments/environment';
 
 deepAi.setApiKey('3e882628-c80d-47d2-b998-79253fd76f15');
 

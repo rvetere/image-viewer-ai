@@ -1,15 +1,12 @@
 import classNames from 'classnames';
-import { LocalImage } from '../components/Image';
+import { LocalImage } from '../components/image/image';
 import { Navigation } from '../components/navigation/navigation';
 import { Sidebar } from '../components/sidebar/sidebar';
-import { useImageContext } from '../context/image.context';
+import { useAppContext } from '../context/appContext';
 import styles from './homePage.module.css';
 
 export const HomePage = () => {
-  const {
-    list,
-    uiState: { working },
-  } = useImageContext();
+  const { list, working } = useAppContext();
   return (
     <div className={classNames(styles.page, { [styles.working]: working })}>
       <div id="bigImagePortal" className={styles.bigImagePortal} />

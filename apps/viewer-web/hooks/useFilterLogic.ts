@@ -1,30 +1,23 @@
-import * as nsfwjs from 'nsfwjs';
 import { Dispatch, useCallback, useEffect } from 'react';
-import { IImageContext, ImageContextAction } from '../image.context';
-import { ImageWithDefinitions, NudityResponse } from '../types';
-import { useElectronFileSystem } from './useElectronFileSystem';
+import { useAppContext, useAppOperations } from '../context/appContext';
+import { IUiContext, UiContextAction } from '../context/uiContext';
+import { ImageWithDefinitions, NudityResponse } from '../lib/types';
 
-export const useUiLogic = (
-  { browsingDir, nudityMap, favorites, uiState, images }: IImageContext,
-  dispatch: Dispatch<ImageContextAction>
+export const useFilterLogic = (
+  state: IUiContext,
+  dispatch: Dispatch<UiContextAction>
 ) => {
-  useElectronFileSystem({ browsingDir, favorites, nudityMap }, dispatch);
-
-  // Load the NSFW model
-  useEffect(() => {
-    nsfwjs
-      .load()
-      .then((_model) => dispatch({ type: 'SET_MODEL', payload: _model }));
-  }, [dispatch]);
+  const { images, nudityMap, favorites } = useAppContext();
+  const { setList } = useAppOperations();
 
   const { filterFn, sortWithFilterFn } = useFilterAndSort({
     nudityMap,
     favorites,
-    uiState,
     dispatch,
+    uiState: state,
   });
 
-  const { filter } = uiState;
+  const { filter } = state;
   useEffect(() => {
     const newList: ImageWithDefinitions[] = images
       .filter(filterFn)
@@ -48,23 +41,15 @@ export const useUiLogic = (
         }
         return 0;
       });
-    dispatch({ type: 'SET_LIST', payload: newList });
-  }, [
-    filter,
-    uiState.format,
-    images,
-    uiState.onlyFaves,
-    dispatch,
-    filterFn,
-    sortWithFilterFn,
-  ]);
+    setList(newList);
+  }, [images, filter, filterFn, sortWithFilterFn, setList]);
 };
 
 type UseFilterAndSortParams = {
   nudityMap: Map<string, NudityResponse>;
   favorites: string[];
-  uiState: IImageContext['uiState'];
-  dispatch: Dispatch<ImageContextAction>;
+  uiState: IUiContext;
+  dispatch: Dispatch<UiContextAction>;
 };
 
 const useFilterAndSort = ({

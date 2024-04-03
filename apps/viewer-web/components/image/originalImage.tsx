@@ -1,10 +1,10 @@
 /* eslint-disable @next/next/no-img-element */
-import { FC, useEffect, useRef } from 'react';
-import { ImageWithDefinitions } from '../../context/types';
+import { FunctionComponent, useEffect, useRef } from 'react';
+import { ImageWithDefinitions } from '../../lib/types';
 import { createPortal } from 'react-dom';
 import styles from './originalImage.module.css';
 
-export const OriginalImage: FC<{
+export const OriginalImage: FunctionComponent<{
   image: ImageWithDefinitions;
   reset: () => void;
 }> = ({ image, reset }) => {

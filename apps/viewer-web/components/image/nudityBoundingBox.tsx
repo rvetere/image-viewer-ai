@@ -1,15 +1,14 @@
-import { useImageContext } from '../../context/image.context';
-import { FC } from 'react';
+import { useAppContext } from '../../context/appContext';
+import { FunctionComponent } from 'react';
 import styles from './nudityBoundingBox.module.css';
+import { useUiContext } from '../../context/uiContext';
 
-export const NudityBoundingBoxes: FC<{ src: string; ratio: number }> = ({
-  src,
-  ratio,
-}) => {
-  const {
-    nudityMap,
-    uiState: { showBoundingBox },
-  } = useImageContext();
+export const NudityBoundingBoxes: FunctionComponent<{
+  src: string;
+  ratio: number;
+}> = ({ src, ratio }) => {
+  const { nudityMap } = useAppContext();
+  const { showBoundingBox } = useUiContext();
   const nudity = nudityMap.get(src);
   if (!showBoundingBox || !nudity || !nudity.output) {
     return null;

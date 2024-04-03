@@ -1,9 +1,9 @@
-import { useImageContext, useImageOperations } from '../context/image.context';
-import { NudityResponse } from '../context/types';
+import { useAppContext, useAppOperations } from '../context/appContext';
+import { NudityResponse } from '../lib/types';
 
 export const useNudityApi = () => {
-  const { list, nudityMap } = useImageContext();
-  const { setWorking, setNudityMap } = useImageOperations();
+  const { list, nudityMap } = useAppContext();
+  const { setWorking, setNudityMap } = useAppOperations();
   const handleRunNudityApi = () => () => {
     setWorking(true);
     const toFetch = list
