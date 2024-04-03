@@ -2,11 +2,11 @@ import { useAppContext, useAppOperations } from '../context/appContext';
 import { NudityResponse } from '../lib/types';
 
 export const useNudityApi = () => {
-  const { list, nudityMap } = useAppContext();
+  const { browsingData, nudityMap } = useAppContext();
   const { setWorking, setNudityMap } = useAppOperations();
   const handleRunNudityApi = () => () => {
     setWorking(true);
-    const toFetch = list
+    const toFetch = browsingData
       .filter(
         (image) =>
           !nudityMap.get(

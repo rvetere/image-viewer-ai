@@ -1,25 +1,21 @@
-import { Dispatch, useCallback, useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useAppContext, useAppOperations } from '../context/appContext';
-import { IUiContext, UiContextAction } from '../context/uiContext';
+import { IFilterContext } from '../context/filterContext';
 import { ImageWithDefinitions, NudityResponse } from '../lib/types';
 
-export const useFilterLogic = (
-  state: IUiContext,
-  dispatch: Dispatch<UiContextAction>
-) => {
-  const { images, nudityMap, favorites } = useAppContext();
-  const { setList } = useAppOperations();
+export const useFilterLogic = (state: IFilterContext) => {
+  const { browsingData, nudityMap, favorites } = useAppContext();
+  const { setBrowsingData } = useAppOperations();
 
   const { filterFn, sortWithFilterFn } = useFilterAndSort({
     nudityMap,
     favorites,
-    dispatch,
     uiState: state,
   });
 
   const { filter } = state;
   useEffect(() => {
-    const newList: ImageWithDefinitions[] = images
+    const newList: ImageWithDefinitions[] = browsingData
       .filter(filterFn)
       .sort((a, b) => {
         const sizeA = a.size.width * a.size.height;
@@ -41,23 +37,22 @@ export const useFilterLogic = (
         }
         return 0;
       });
-    setList(newList);
-  }, [images, filter, filterFn, sortWithFilterFn, setList]);
+    setBrowsingData(newList);
+  }, [browsingData, filter, filterFn, sortWithFilterFn, setBrowsingData]);
 };
 
 type UseFilterAndSortParams = {
   nudityMap: Map<string, NudityResponse>;
   favorites: string[];
-  uiState: IUiContext;
-  dispatch: Dispatch<UiContextAction>;
+  uiState: IFilterContext;
 };
 
 const useFilterAndSort = ({
   nudityMap,
   favorites,
   uiState: { filter, format, onlyFaves },
-  dispatch,
 }: UseFilterAndSortParams) => {
+  const { resetSelected } = useAppOperations();
   const filterFormat = useCallback(
     (image) => {
       if (format === 'all') {
@@ -99,7 +94,7 @@ const useFilterAndSort = ({
 
   const filterFn = useCallback(
     (image) => {
-      dispatch({ type: 'RESET_SELECTED' });
+      resetSelected();
       const withOnlyFave = onlyFaves ? favorites.includes(image.src) : true;
       const neutral = image.predictions.find((p) => p.className === 'Neutral');
       const sexy = image.predictions.find((p) => p.className === 'Sexy');
@@ -146,12 +141,12 @@ const useFilterAndSort = ({
     },
     [
       filter,
+      filterFormat,
+      filterNudity,
+      nudityMap,
       onlyFaves,
       favorites,
-      nudityMap,
-      dispatch,
-      filterNudity,
-      filterFormat,
+      resetSelected,
     ]
   );
 

@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { FunctionComponent, useEffect, useRef } from 'react';
-import { ImageWithDefinitions } from '../../lib/types';
 import { createPortal } from 'react-dom';
+import { ImageWithDefinitions } from '../../lib/types';
 import styles from './originalImage.module.css';
 
 export const OriginalImage: FunctionComponent<{

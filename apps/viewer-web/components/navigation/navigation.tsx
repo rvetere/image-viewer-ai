@@ -1,49 +1,53 @@
 import classNames from 'classnames';
 import { FunctionComponent, useMemo } from 'react';
 import { useAppContext, useAppOperations } from '../../context/appContext';
-import { useUiContext, useUiOperations } from '../../context/uiContext';
+import {
+  useFilterContext,
+  useFilterOperations,
+} from '../../context/filterContext';
 import { useNudityApi } from '../../hooks/useNudityApi';
 import { ImageFilter } from '../../lib/types';
 import styles from './navigation.module.css';
 
 export const Navigation: FunctionComponent = () => {
-  const { list, model, nudityMap } = useAppContext();
-  const { filter, format, onlyFaves, showBoundingBox } = useUiContext();
+  const { browsingData, model, nudityMap } = useAppContext();
   const { handleBrowse } = useAppOperations();
-  const { setFilter, setFormat, setOnlyFaves, setShowBoundingBox } =
-    useUiOperations();
+  const { filter, format, onlyFaves, showBoundingBox } = useFilterContext();
+  const { setState } = useFilterOperations();
+
   const { handleRunNudityApi } = useNudityApi();
 
   const handleFilterSexyOnly = () => {
-    setFilter(filter === 'sexyOnly' ? 'all' : 'sexyOnly');
+    setState({ filter: filter === 'sexyOnly' ? 'all' : 'sexyOnly' });
   };
   const handleFilterButtocksOnly = () => {
-    setFilter(filter === 'buttocksOnly' ? 'all' : 'buttocksOnly');
+    setState({ filter: filter === 'buttocksOnly' ? 'all' : 'buttocksOnly' });
   };
   const handleFilterBreastsOnly = () => {
-    setFilter(filter === 'breastsOnly' ? 'all' : 'breastsOnly');
+    setState({ filter: filter === 'breastsOnly' ? 'all' : 'breastsOnly' });
   };
 
   const handleFormatGifsOnly = () => {
-    setFormat(format === 'gifsOnly' ? 'all' : 'gifsOnly');
+    setState({ format: format === 'gifsOnly' ? 'all' : 'gifsOnly' });
   };
 
   const handleFormatStaticOnly = () => {
-    setFormat(format === 'staticOnly' ? 'all' : 'staticOnly');
+    setState({ format: format === 'staticOnly' ? 'all' : 'staticOnly' });
   };
 
   const handleOnlyFaves = () => {
-    setOnlyFaves(!onlyFaves);
+    setState({ onlyFaves: !onlyFaves });
   };
 
-  const toggleShowBoundingBox = () => setShowBoundingBox(!showBoundingBox);
+  const toggleShowBoundingBox = () =>
+    setState({ showBoundingBox: !showBoundingBox });
 
   const handleNudityFilter = (word: string) => () =>
-    setFilter(word as ImageFilter);
+    setState({ filter: word as ImageFilter });
 
   const wordCloud = useMemo<{ [name: string]: number }>(() => {
     const cloud: { [name: string]: number } = {};
-    list
+    browsingData
       .map((image) => {
         const nudity = nudityMap.get(
           image.resizedDataUrl ? image.resizedDataUrl : image.src
@@ -64,14 +68,14 @@ export const Navigation: FunctionComponent = () => {
         });
       });
     return cloud;
-  }, [list, nudityMap]);
+  }, [browsingData, nudityMap]);
 
   return (
     <div className={styles.navigation}>
       {model && <button onClick={handleBrowse}>Browse</button>}
-      <div className={styles.counter}>{list.length}x</div>
+      <div className={styles.counter}>{browsingData.length}x</div>
       <div className={styles.mainFunctions}>
-        {list.length > 0 && (
+        {browsingData.length > 0 && (
           <>
             <button
               onClick={handleFilterSexyOnly}
@@ -131,7 +135,7 @@ export const Navigation: FunctionComponent = () => {
             </button>
           </>
         )}
-        {list.length > 0 && filter === 'sexyOnly' && (
+        {browsingData.length > 0 && filter === 'sexyOnly' && (
           <button onClick={handleRunNudityApi()}>Run Nudity API</button>
         )}
 

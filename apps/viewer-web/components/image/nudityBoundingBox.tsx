@@ -1,14 +1,14 @@
-import { useAppContext } from '../../context/appContext';
 import { FunctionComponent } from 'react';
+import { useAppContext } from '../../context/appContext';
+import { useFilterContext } from '../../context/filterContext';
 import styles from './nudityBoundingBox.module.css';
-import { useUiContext } from '../../context/uiContext';
 
 export const NudityBoundingBoxes: FunctionComponent<{
   src: string;
   ratio: number;
 }> = ({ src, ratio }) => {
   const { nudityMap } = useAppContext();
-  const { showBoundingBox } = useUiContext();
+  const { showBoundingBox } = useFilterContext();
   const nudity = nudityMap.get(src);
   if (!showBoundingBox || !nudity || !nudity.output) {
     return null;

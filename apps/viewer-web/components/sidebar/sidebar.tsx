@@ -2,16 +2,21 @@
 import classNames from 'classnames';
 import { FunctionComponent, useState } from 'react';
 import { useAppContext, useAppOperations } from '../../context/appContext';
-import { useUiContext, useUiOperations } from '../../context/uiContext';
 import { hashCode } from '../../lib/hashCode';
 import { NudityResponse } from '../../lib/types';
 import styles from './sidebar.module.css';
 
 export const Sidebar: FunctionComponent = () => {
-  const { images, nudityMap, browsingDir } = useAppContext();
-  const { selected, subSelected, progress } = useUiContext();
-  const { setImages, setNudityMap } = useAppOperations();
-  const { setSelected, setSubSelected } = useUiOperations();
+  const {
+    selected,
+    subSelected,
+    progress,
+    browsingData,
+    nudityMap,
+    browsingDir,
+  } = useAppContext();
+  const { setSelected, setSubSelected, setBrowsingData, setNudityMap } =
+    useAppOperations();
 
   const [sureToDelete, setSureToDelete] = useState(false);
   const handleDelete = () => {
@@ -38,10 +43,10 @@ export const Sidebar: FunctionComponent = () => {
       setSubSelected(newSubSelected);
       const newSelected = selected.filter((src) => !subSelected.includes(src));
       setSelected(newSelected);
-      const newImages = images.filter(
+      const newImages = browsingData.filter(
         (image) => !subSelected.includes(image.src)
       );
-      setImages(newImages);
+      setBrowsingData(newImages);
       // @ts-expect-error bla
       window.electron
         .storeData(`${hashCode(browsingDir)}.json`, JSON.stringify(newImages))
@@ -68,7 +73,7 @@ export const Sidebar: FunctionComponent = () => {
               )}
             </div>
             {selected.map((src) => {
-              const image = images.find((image) => image.src === src);
+              const image = browsingData.find((image) => image.src === src);
               return (
                 <img
                   key={src}

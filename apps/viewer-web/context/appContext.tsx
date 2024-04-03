@@ -15,20 +15,28 @@ import { storeDataOnFileSystem } from '../lib/storeDataOnFileSystem';
 
 export interface IAppContext {
   working: boolean;
+  progress: number;
+  selected: string[];
+  subSelected: string[];
+  selectStartIndex: number;
   model: nsfwjs.NSFWJS;
   browsingDir: string | null;
-  list: ImageWithDefinitions[];
+  browsingData: ImageWithDefinitions[];
   nudityMap: Map<string, NudityResponse>;
-  images: ImageWithDefinitions[];
   favorites: string[];
 }
 
 export interface IAppOperationsContext {
   setWorking: (working: boolean) => void;
-  setList: (list: ImageWithDefinitions[]) => void;
+  setBrowsingData: (browsingData: ImageWithDefinitions[]) => void;
   setFavorites: (favorites: string[]) => void;
   setNudityMap: (nudityMap: Map<string, NudityResponse>) => void;
-  setImages: (images: ImageWithDefinitions[]) => void;
+  resetSelected: () => void;
+  setSelected: (selected: string[]) => void;
+  setSubSelected: (subSelected: string[]) => void;
+  handleSelect: (
+    index: number
+  ) => (event: MouseEvent<HTMLImageElement>) => void;
   handleFavorite: (
     image: ImageWithDefinitions
   ) => (event: MouseEvent<HTMLButtonElement>) => void;
@@ -40,20 +48,27 @@ export type AppContextAction =
   | { type: 'SET_WORKING'; payload: boolean }
   | { type: 'SET_MODEL'; payload: nsfwjs.NSFWJS }
   | { type: 'SET_NUDITY_MAP'; payload: Map<string, NudityResponse> }
-  | { type: 'SET_IMAGES'; payload: ImageWithDefinitions[] }
-  | { type: 'SET_LIST'; payload: ImageWithDefinitions[] }
+  | { type: 'SET_BROWSING_DATA'; payload: ImageWithDefinitions[] }
   | { type: 'BROWSE'; payload: { dir: string; imagePaths: string[] } }
   | { type: 'SET_FAVORITES'; payload: string[] }
+  | { type: 'SET_PROGRESS'; payload: number }
+  | { type: 'SET_SELECTED'; payload: string[] }
+  | { type: 'SET_SUB_SELECTED'; payload: string[] }
+  | { type: 'SET_SEL_START_INDEX'; payload: number }
+  | { type: 'RESET_SELECTED' }
   | { type: 'RESET' };
 
 const initialState: IAppContext = {
   working: false,
   model: {} as nsfwjs.NSFWJS,
   browsingDir: null,
-  list: [],
+  browsingData: [],
   nudityMap: new Map<string, NudityResponse>(),
-  images: [],
   favorites: [],
+  progress: 0,
+  selected: [],
+  subSelected: [],
+  selectStartIndex: -1,
 };
 
 function appContextReducer(
@@ -63,6 +78,14 @@ function appContextReducer(
   switch (action.type) {
     case 'RESET':
       return initialState;
+    case 'RESET_SELECTED': {
+      return {
+        ...state,
+        selected: [],
+        subSelected: [],
+        selectStartIndex: -1,
+      };
+    }
     case 'BROWSE': {
       const newState: IAppContext = {
         ...initialState, // reset state on every new browse action
@@ -76,17 +99,10 @@ function appContextReducer(
         working: action.payload,
       };
     }
-    case 'SET_IMAGES': {
+    case 'SET_BROWSING_DATA': {
       const newState: IAppContext = {
         ...state,
-        images: action.payload,
-      };
-      return newState;
-    }
-    case 'SET_LIST': {
-      const newState: IAppContext = {
-        ...state,
-        list: action.payload,
+        browsingData: action.payload,
       };
       return newState;
     }
@@ -104,6 +120,9 @@ function appContextReducer(
     case 'SET_NUDITY_MAP': {
       const newState: IAppContext = { ...state, nudityMap: action.payload };
       return newState;
+    }
+    case 'SET_PROGRESS': {
+      return { ...state, progress: action.payload };
     }
     default:
       throw new Error(`Unhandled action type: ${action}`);
@@ -128,24 +147,46 @@ export const AppContextProvider: FunctionComponent<{
       .then((_model) => dispatch({ type: 'SET_MODEL', payload: _model }));
   }, [dispatch]);
 
-  const { model, images, favorites } = state;
+  const { model, browsingData, favorites, selectStartIndex } = state;
   useEffect(() => {
-    if (images.length > 0) {
-      console.log('detected changes on "images", resetting working state..');
+    if (browsingData.length > 0) {
+      console.log(
+        'detected changes on "browsingData", resetting working state..'
+      );
       dispatch({ type: 'SET_WORKING', payload: false });
     }
-  }, [images]);
+  }, [browsingData]);
   const operations = useMemo(
     () => ({
       handleReset: () => dispatch({ type: 'RESET' }),
+      resetSelected: () => dispatch({ type: 'RESET_SELECTED' }),
+      setSelected: (selected: string[]) =>
+        dispatch({ type: 'SET_SELECTED', payload: selected }),
+      setSubSelected: (subSelected: string[]) =>
+        dispatch({ type: 'SET_SUB_SELECTED', payload: subSelected }),
+      handleSelect:
+        (index: number) => (event: MouseEvent<HTMLImageElement>) => {
+          if (selectStartIndex === -1) {
+            dispatch({
+              type: 'SET_SEL_START_INDEX',
+              payload: index,
+            });
+          } else if (event.shiftKey) {
+            const newSelected = browsingData
+              .filter((_image, idx) => idx >= selectStartIndex && idx <= index)
+              .map((image) => image.src);
+            dispatch({
+              type: 'SET_SELECTED',
+              payload: newSelected,
+            });
+          }
+        },
       setWorking: (working: boolean) =>
         dispatch({ type: 'SET_WORKING', payload: working }),
-      setList: (newList: ImageWithDefinitions[]) =>
-        dispatch({ type: 'SET_LIST', payload: newList }),
+      setBrowsingData: (browsingData: ImageWithDefinitions[]) =>
+        dispatch({ type: 'SET_BROWSING_DATA', payload: browsingData }),
       setNudityMap: (nudityMap: Map<string, NudityResponse>) =>
         dispatch({ type: 'SET_NUDITY_MAP', payload: nudityMap }),
-      setImages: (images: ImageWithDefinitions[]) =>
-        dispatch({ type: 'SET_IMAGES', payload: images }),
       setFavorites: (favorites: string[]) =>
         dispatch({ type: 'SET_FAVORITES', payload: favorites }),
       handleBrowse: () => {
@@ -210,7 +251,10 @@ export const AppContextProvider: FunctionComponent<{
 
           console.log('✅ Got all image defs..', { imageDefs, dir });
           if (imagesWithDefsFinal.length > 0) {
-            dispatch({ type: 'SET_IMAGES', payload: imagesWithDefsFinal });
+            dispatch({
+              type: 'SET_BROWSING_DATA',
+              payload: imagesWithDefsFinal,
+            });
             storeDataOnFileSystem(
               `${hashCode(dir)}.json`,
               JSON.stringify(imagesWithDefsFinal)
@@ -233,7 +277,7 @@ export const AppContextProvider: FunctionComponent<{
           }
         },
     }),
-    [favorites, model]
+    [favorites, model, browsingData, selectStartIndex]
   );
 
   return (

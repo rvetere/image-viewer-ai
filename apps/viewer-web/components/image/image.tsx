@@ -2,9 +2,8 @@
 import classNames from 'classnames';
 import { FunctionComponent, MouseEvent, useState } from 'react';
 import { useInView } from 'react-intersection-observer';
-import { useAppContext } from '../../context/appContext';
+import { useAppContext, useAppOperations } from '../../context/appContext';
 import { ImageWithDefinitions } from '../../lib/types';
-import { useUiContext, useUiOperations } from '../../context/uiContext';
 import { Controls } from './controls';
 import styles from './image.module.css';
 import { NudityBoundingBoxes } from './nudityBoundingBox';
@@ -19,11 +18,10 @@ export const LocalImage: FunctionComponent<LocalImageProps> = ({
   image,
   index,
 }) => {
-  const { nudityMap } = useAppContext();
-  const { selected } = useUiContext();
+  const { nudityMap, selected } = useAppContext();
   const src = image.resizedDataUrl ?? image.src;
 
-  const { setSelected, handleSelect } = useUiOperations();
+  const { setSelected, handleSelect } = useAppOperations();
 
   const [showOriginal, setShowOriginal] = useState(false);
   const { ref, inView } = useInView({

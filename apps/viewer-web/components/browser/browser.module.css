@@ -1,0 +1,8 @@
+.browsingData {
+  height: calc(100vh - 48px);
+  scroll-behavior: smooth;
+  background-color: lightgrey;
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+}
