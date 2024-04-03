@@ -1,17 +1,9 @@
-import { Dispatch, SetStateAction } from 'react';
-import { ImageWithDefinitions, NudityResponse } from '../components/Image';
+import { useImageContext, useImageOperations } from '../context/image.context';
+import { NudityResponse } from '../context/types';
 
-type HandleNudityProps = {
-  setWorking: (working: boolean) => void;
-  list: ImageWithDefinitions[];
-  setNudityMap: Dispatch<SetStateAction<Map<string, NudityResponse>>>;
-};
-
-export const useHandleNudityApi = ({
-  setWorking,
-  list,
-  setNudityMap,
-}: HandleNudityProps) => {
+export const useHandleNudityApi = () => {
+  const { list } = useImageContext();
+  const { setWorking, setNudityMap } = useImageOperations();
   const handleNudityApi = (_nudityMap: Map<string, NudityResponse>) => () => {
     setWorking(true);
     const toFetch = list
@@ -37,7 +29,6 @@ export const useHandleNudityApi = ({
           }
         });
         setNudityMap(newNudityMap);
-
         setWorking(false);
 
         console.log('new size of nudity map:', newNudityMap.size);

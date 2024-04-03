@@ -1,80 +1,34 @@
 /* eslint-disable @next/next/no-img-element */
 import classNames from 'classnames';
-import * as nsfwjs from 'nsfwjs';
 import {
   Dispatch,
   FC,
+  MouseEventHandler,
   SetStateAction,
   useEffect,
   useRef,
   useState,
 } from 'react';
-import { useInView } from 'react-intersection-observer';
 import { createPortal } from 'react-dom';
+import { useInView } from 'react-intersection-observer';
+import { useImageContext, useImageOperations } from '../context/image.context';
+import { ImageWithDefinitions } from '../context/types';
 import styles from './Image.module.css';
 
-export type BrowseResponse = {
-  src: string;
-  resizedDataUrl?: string;
-  size: { width: number; height: number };
-};
-
-export type ImageWithDefinitions = BrowseResponse & {
-  predictions: nsfwjs.predictionType[];
-};
-
 type LocalImageProps = {
-  image: ImageWithDefinitions;
-  nudityMap: Map<string, NudityResponse>;
-  setNudityMap: Dispatch<SetStateAction<Map<string, NudityResponse>>>;
-  showBoundingBox: boolean;
-  selected: string[];
   index: number;
-  setSelected: Dispatch<SetStateAction<string[]>>;
-  handleSelect: (index: number) => (event: any) => void;
-  favorites: string[];
-  setFavorites: Dispatch<SetStateAction<string[]>>;
+  image: ImageWithDefinitions;
 };
 
-type NudityDetections = {
-  bounding_box: number[];
-  confidence: string;
-  name: string;
-};
+export const LocalImage: FC<LocalImageProps> = ({ image, index }) => {
+  const {
+    uiState: { selected },
+    nudityMap,
+  } = useImageContext();
+  const isSelected = selected.includes(image.src);
 
-type NudityOutput = {
-  detections: NudityDetections[];
-  nsfw_score: number;
-};
-
-export type NudityResponse = {
-  id: string;
-  output: NudityOutput;
-};
-
-const getBoundingBoxColor = (index: number) => {
-  switch (index) {
-    case 0:
-      return 'red';
-    default:
-    case 1:
-      return 'orange';
-  }
-};
-
-export const LocalImage: FC<LocalImageProps> = ({
-  image,
-  showBoundingBox,
-  nudityMap,
-  setNudityMap,
-  index,
-  selected,
-  setSelected,
-  handleSelect,
-  favorites,
-  setFavorites,
-}) => {
-  const { ref, inView, entry } = useInView({
+  const { setSelected, handleSelect } = useImageOperations();
+  const { ref, inView } = useInView({
     threshold: 0,
   });
 
@@ -84,7 +38,11 @@ export const LocalImage: FC<LocalImageProps> = ({
 
   const [showOriginal, setShowOriginal] = useState(false);
   const handleImgClick =
-    (image: ImageWithDefinitions, index: number) => (e: any) => {
+    (
+      image: ImageWithDefinitions,
+      index: number
+    ): MouseEventHandler<HTMLImageElement> =>
+    (e) => {
       handleSelect(index)(e);
 
       if (!e.shiftKey) {
@@ -110,15 +68,6 @@ export const LocalImage: FC<LocalImageProps> = ({
       }
     };
 
-  const handleFavorite = () => {
-    const exists = favorites.includes(image.src);
-    if (exists) {
-      setFavorites(favorites.filter((src) => src !== image.src));
-    } else {
-      setFavorites([...favorites, image.src]);
-    }
-  };
-
   const extension = image.src.split('.').pop();
   let resized = false;
   let { width, height } = image.size;
@@ -141,11 +90,6 @@ export const LocalImage: FC<LocalImageProps> = ({
     height = Math.round(height * ratio);
   }
 
-  const nudity = nudityMap.get(
-    image.resizedDataUrl ? image.resizedDataUrl : image.src
-  );
-
-  const isSelected = selected.includes(image.src);
   return (
     <>
       {showOriginal && (
@@ -156,75 +100,121 @@ export const LocalImage: FC<LocalImageProps> = ({
         style={{ width, height }}
         className={styles.imageContainer}
       >
-        {showBoundingBox &&
-          nudity &&
-          nudity.output &&
-          nudity.output.detections.map((detection, index) => (
-            <div
-              key={`box-${index}`}
-              className={styles.boundingBox}
-              style={{
-                pointerEvents: 'none',
-                position: 'absolute',
-                border: `1px solid ${getBoundingBoxColor(index)}`,
-                left: detection.bounding_box[0] * ratio,
-                top: detection.bounding_box[1] * ratio,
-                width: detection.bounding_box[2] * ratio,
-                height: detection.bounding_box[3] * ratio,
-              }}
-            >
-              <span>
-                {detection.name}
-                <sup>{detection.confidence}</sup>
-              </span>
-            </div>
-          ))}
-        <img
-          ref={imgRef}
-          src={
-            image.resizedDataUrl
-              ? `file://${image.resizedDataUrl}`
-              : `file://${image.src}`
-          }
-          style={{ maxWidth: width + 4 }}
-          loading="lazy"
-          alt={image.src}
-          className={classNames(styles.image, {
-            // [styles.resized]: resized || !!image.resizedDataUrl,
-            [styles.selected]: isSelected,
-          })}
-          onClick={handleImgClick(image, index)}
+        <NudityBoundingBoxes
+          src={image.resizedDataUrl ? image.resizedDataUrl : image.src}
+          ratio={ratio}
         />
+        {inView && (
+          <img
+            ref={imgRef}
+            src={
+              image.resizedDataUrl
+                ? `file://${image.resizedDataUrl}`
+                : `file://${image.src}`
+            }
+            style={{ maxWidth: width + 4 }}
+            loading="lazy"
+            alt={image.src}
+            className={classNames(styles.image, {
+              [styles.resized]: resized || !!image.resizedDataUrl,
+              [styles.selected]: isSelected,
+            })}
+            onClick={handleImgClick(image, index)}
+          />
+        )}
 
-        <button
-          className={styles.openBig}
-          onClick={() => {
-            setShowOriginal(true);
+        <Controls
+          image={image}
+          showOriginal={showOriginal}
+          setShowOriginal={setShowOriginal}
+        />
+      </div>
+    </>
+  );
+};
+
+interface IControlsProps {
+  image: ImageWithDefinitions;
+  showOriginal: boolean;
+  setShowOriginal: Dispatch<SetStateAction<boolean>>;
+}
+
+const Controls: FC<IControlsProps> = ({
+  image,
+  showOriginal,
+  setShowOriginal,
+}) => {
+  const { favorites } = useImageContext();
+  const { handleFavorite } = useImageOperations();
+  return (
+    <>
+      <button
+        className={styles.openBig}
+        onClick={() => {
+          setShowOriginal(true);
+        }}
+      >
+        Spot
+      </button>
+
+      <button
+        title="Like"
+        onClick={handleFavorite(image)}
+        className={styles.favorite}
+      >
+        {favorites.includes(image.src) ? '💜' : '🤍'}
+      </button>
+
+      {!showOriginal && (
+        <div className={classNames(styles.text, styles.predictions)}>
+          {image.predictions &&
+            image.predictions.map((p, index) => (
+              <span key={`prediction-${index}`}>
+                {p.className}
+                <sup>{p.probability.toFixed(2)}</sup>
+              </span>
+            ))}
+        </div>
+      )}
+    </>
+  );
+};
+
+const NudityBoundingBoxes: FC<{ src: string; ratio: number }> = ({
+  src,
+  ratio,
+}) => {
+  const {
+    nudityMap,
+    uiState: { showBoundingBox },
+  } = useImageContext();
+  const nudity = nudityMap.get(src);
+  if (!showBoundingBox || !nudity || !nudity.output) {
+    return null;
+  }
+
+  return (
+    <>
+      {nudity.output.detections.map((detection, index) => (
+        <div
+          key={`box-${index}`}
+          className={styles.boundingBox}
+          style={{
+            pointerEvents: 'none',
+            position: 'absolute',
+            border: `1px solid ${getBoundingBoxColor(index)}`,
+            left: detection.bounding_box[0] * ratio,
+            top: detection.bounding_box[1] * ratio,
+            width: detection.bounding_box[2] * ratio,
+            height: detection.bounding_box[3] * ratio,
           }}
         >
-          Spot
-        </button>
-
-        <button
-          title="Like"
-          onClick={handleFavorite}
-          className={styles.favorite}
-        >
-          {favorites.includes(image.src) ? '💜' : '🤍'}
-        </button>
-
-        {!showOriginal && (
-          <div className={classNames(styles.text, styles.predictions)}>
-            {image.predictions &&
-              image.predictions.map((p, index) => (
-                <span key={`prediction-${index}`}>
-                  {p.className}
-                  <sup>{p.probability.toFixed(2)}</sup>
-                </span>
-              ))}
-          </div>
-        )}
-      </div>
+          <span>
+            {detection.name}
+            <sup>{detection.confidence}</sup>
+          </span>
+        </div>
+      ))}
     </>
   );
 };
@@ -253,4 +243,14 @@ const OriginalImage: FC<{ image: ImageWithDefinitions; reset: () => void }> = ({
     />,
     document.getElementById('bigImagePortal')
   );
+};
+
+const getBoundingBoxColor = (index: number) => {
+  switch (index) {
+    case 0:
+      return 'red';
+    default:
+    case 1:
+      return 'orange';
+  }
 };

@@ -1,35 +1,24 @@
 /* eslint-disable @next/next/no-img-element */
-import { hashCode } from '../../helpers/hashCode';
 import classNames from 'classnames';
-import { Dispatch, FC, SetStateAction, useState } from 'react';
-import { ImageWithDefinitions, NudityResponse } from '../Image';
+import { FunctionComponent, useState } from 'react';
+import {
+  useImageContext,
+  useImageOperations,
+} from '../../context/image.context';
+import { NudityResponse } from '../../context/types';
+import { hashCode } from '../../helpers/hashCode';
 import styles from './sidebar.module.css';
 
-type SidebarProps = {
-  selected: string[];
-  images: ImageWithDefinitions[];
-  nudityMap: Map<string, NudityResponse>;
-  setSelected: Dispatch<SetStateAction<string[]>>;
-  subSelected: string[];
-  setSubSelected: Dispatch<SetStateAction<string[]>>;
-  setImages: Dispatch<SetStateAction<ImageWithDefinitions[]>>;
-  storeNudityMap: (_nudityMap: Map<string, NudityResponse>) => void;
-  progress: number;
-  dir: string;
-};
+export const Sidebar: FunctionComponent = () => {
+  const {
+    images,
+    nudityMap,
+    uiState: { selected, subSelected, progress },
+    browsingDir,
+  } = useImageContext();
+  const { setNudityMap, setSelected, setSubSelected, setImages } =
+    useImageOperations();
 
-export const Sidebar: FC<SidebarProps> = ({
-  images,
-  selected,
-  nudityMap,
-  subSelected,
-  storeNudityMap,
-  setImages,
-  setSelected,
-  setSubSelected,
-  progress,
-  dir,
-}) => {
   const [sureToDelete, setSureToDelete] = useState(false);
   const handleDelete = () => {
     if (!sureToDelete) {
@@ -47,7 +36,7 @@ export const Sidebar: FC<SidebarProps> = ({
           newNudityMap.set(key, value);
         }
       }
-      storeNudityMap(newNudityMap);
+      setNudityMap(newNudityMap);
 
       const newSubSelected = subSelected.filter(
         (src) => !subSelected.includes(src)
@@ -61,7 +50,7 @@ export const Sidebar: FC<SidebarProps> = ({
       setImages(newImages);
       // @ts-expect-error bla
       window.electron
-        .storeData(`${hashCode(dir)}.json`, JSON.stringify(newImages))
+        .storeData(`${hashCode(browsingDir)}.json`, JSON.stringify(newImages))
         .then((results) => {
           console.log('Stored data', { results });
         });
@@ -95,7 +84,7 @@ export const Sidebar: FC<SidebarProps> = ({
                   className={classNames(styles.selectedImage, {
                     [styles.subSelected]: subSelected.includes(src),
                   })}
-                  onClick={(event: any) => {
+                  onClick={(event) => {
                     setSureToDelete(false);
                     if (event.shiftKey) {
                       const alreadySelected = selected.includes(src);

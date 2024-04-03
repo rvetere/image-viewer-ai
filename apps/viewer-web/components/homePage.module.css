@@ -1,0 +1,46 @@
+.page {
+  height: 100%;
+}
+
+.bigImagePortal {
+  position: absolute;
+  z-index: 10;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+.layout {
+  display: grid;
+  margin-top: 48px;
+  gap: 10px;
+  grid-template-columns: 211px auto;
+}
+
+@media (min-width: 1800px) {
+  .layout {
+    grid-template-columns: 311px auto;
+  }
+}
+
+.working::after {
+  content: '';
+  position: fixed;
+  background: rgba(0, 0, 0, 0.15);
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  opacity: 0.6;
+  cursor: progress;
+  z-index: 20;
+}
+
+.list {
+  height: calc(100vh - 48px);
+  scroll-behavior: smooth;
+  background-color: lightgrey;
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+}

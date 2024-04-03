@@ -1,43 +1,28 @@
 import classNames from 'classnames';
-import { NSFWJS } from 'nsfwjs';
-import { Dispatch, FC, SetStateAction, useMemo } from 'react';
+import { FunctionComponent, useMemo } from 'react';
+import {
+  useImageContext,
+  useImageOperations,
+} from '../../context/image.context';
+import { ImageFilter } from '../../context/types';
 import { useHandleNudityApi } from '../../hooks/useHandleNudityApi';
-import { ImageWithDefinitions, NudityResponse } from '../Image';
 import styles from './navigation.module.css';
 
-type NavigationProps = {
-  model: NSFWJS;
-  handleBrowse: () => void;
-  list: ImageWithDefinitions[];
-  filter: string;
-  setFilter: Dispatch<SetStateAction<string>>;
-  format: string;
-  setFormat: Dispatch<SetStateAction<string>>;
-  setWorking: (working: boolean) => void;
-  nudityMap: Map<string, NudityResponse>;
-  setNudityMap: Dispatch<SetStateAction<Map<string, NudityResponse>>>;
-  showBoundingBox: boolean;
-  setShowBoundingBox: (showBoundingBox: boolean) => void;
-  onlyFaves: boolean;
-  setOnlyFaves: Dispatch<SetStateAction<boolean>>;
-};
+export const Navigation: FunctionComponent = () => {
+  const {
+    list,
+    model,
+    nudityMap,
+    uiState: { filter, format, onlyFaves, showBoundingBox },
+  } = useImageContext();
+  const {
+    setFilter,
+    setFormat,
+    setOnlyFaves,
+    setShowBoundingBox,
+    handleBrowse,
+  } = useImageOperations();
 
-export const Navigation: FC<NavigationProps> = ({
-  filter,
-  setFilter,
-  format,
-  setFormat,
-  setWorking,
-  nudityMap,
-  setNudityMap,
-  list,
-  handleBrowse,
-  model,
-  showBoundingBox,
-  setShowBoundingBox,
-  onlyFaves,
-  setOnlyFaves,
-}) => {
   const handleFilterSexyOnly = () => {
     setFilter(filter === 'sexyOnly' ? 'all' : 'sexyOnly');
   };
@@ -60,16 +45,12 @@ export const Navigation: FC<NavigationProps> = ({
     setOnlyFaves(!onlyFaves);
   };
 
-  const { handleNudityApi } = useHandleNudityApi({
-    setWorking,
-    setNudityMap,
-    list,
-  });
+  const { handleNudityApi } = useHandleNudityApi();
 
   const toggleShowBoundingBox = () => setShowBoundingBox(!showBoundingBox);
 
   const handleNudityFilter = (word: string) => () => {
-    setFilter(word);
+    setFilter(word as ImageFilter);
   };
 
   const wordCloud = useMemo<{ [name: string]: number }>(() => {
@@ -95,7 +76,7 @@ export const Navigation: FC<NavigationProps> = ({
         });
       });
     return cloud;
-  }, [list]);
+  }, [list, nudityMap]);
 
   return (
     <div className={styles.navigation}>
