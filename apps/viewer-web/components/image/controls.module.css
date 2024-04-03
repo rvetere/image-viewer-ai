@@ -1,0 +1,33 @@
+.openBig {
+  position: absolute;
+  background: rgba(88, 88, 88, 0.75);
+  color: white;
+  right: 4px;
+  top: 4px;
+  text-transform: uppercase;
+  height: 32px;
+  font-size: 11px;
+}
+
+.favorite {
+  position: absolute;
+  height: 32px;
+  font-size: 18px;
+  background: rgba(88, 88, 88, 0.75);
+  left: 4px;
+  top: 4px;
+}
+
+.text {
+  color: white;
+  font-size: 12px;
+  text-shadow: 1px 1px 2px #333;
+}
+.predictions {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+}
+.predictions span {
+  margin: 0 4px;
+}

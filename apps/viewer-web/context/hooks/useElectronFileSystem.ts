@@ -37,6 +37,7 @@ export const useElectronFileSystem = (
   );
   useEffect(() => {
     if (browsingDir && nudityMap.size > 0) {
+      console.log('💡 Store nudity map');
       storeNudityMap(nudityMap);
     }
   }, [browsingDir, nudityMap, storeNudityMap]);

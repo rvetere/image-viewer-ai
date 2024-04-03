@@ -1,0 +1,9 @@
+.boundingBox span {
+  font-size: 11px;
+  line-height: 14px;
+  white-space: nowrap;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  top: -22px;
+  position: relative;
+}

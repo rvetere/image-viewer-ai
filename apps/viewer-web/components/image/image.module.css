@@ -1,0 +1,15 @@
+.imageContainer {
+  width: 100%;
+  position: relative;
+}
+.image {
+  border: 4px solid transparent;
+  display: block;
+  width: 100%;
+}
+.image.resized {
+  border-color: rgb(141, 202, 83);
+}
+.image.selected {
+  border-color: rgb(0, 136, 255) !important;
+}

@@ -1,15 +1,15 @@
 import { useImageContext, useImageOperations } from '../context/image.context';
 import { NudityResponse } from '../context/types';
 
-export const useHandleNudityApi = () => {
-  const { list } = useImageContext();
+export const useNudityApi = () => {
+  const { list, nudityMap } = useImageContext();
   const { setWorking, setNudityMap } = useImageOperations();
-  const handleNudityApi = (_nudityMap: Map<string, NudityResponse>) => () => {
+  const handleRunNudityApi = () => () => {
     setWorking(true);
     const toFetch = list
       .filter(
         (image) =>
-          !_nudityMap.get(
+          !nudityMap.get(
             image.resizedDataUrl ? image.resizedDataUrl : image.src
           )
       )
@@ -21,7 +21,7 @@ export const useHandleNudityApi = () => {
     window.electron
       .nudityAiBulk(toFetch.length > 100 ? toFetch.slice(0, 100) : toFetch)
       .then((results) => {
-        const newNudityMap = new Map<string, NudityResponse>(_nudityMap);
+        const newNudityMap = new Map<string, NudityResponse>(nudityMap);
         toFetch.forEach((src, index) => {
           const result = results[index];
           if (result && typeof result !== 'string') {
@@ -41,6 +41,6 @@ export const useHandleNudityApi = () => {
       });
   };
   return {
-    handleNudityApi,
+    handleRunNudityApi,
   };
 };

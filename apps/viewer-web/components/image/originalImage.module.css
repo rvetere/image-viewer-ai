@@ -1,0 +1,7 @@
+.originalImage {
+  position: absolute;
+  z-index: 11;
+  box-shadow: 5px 5px 50px 10px black;
+  left: 50%;
+  transform: translateX(-50%);
+}

@@ -33,6 +33,7 @@ export const LocalImage: FC<LocalImageProps> = ({ image, index }) => {
   });
 
   const [maxWidth, setMaxWidth] = useState(600);
+  const { width, height, ratio, resized } = getDimensions(image, maxWidth);
 
   const imgRef = useRef<HTMLImageElement>();
 
@@ -68,28 +69,6 @@ export const LocalImage: FC<LocalImageProps> = ({ image, index }) => {
       }
     };
 
-  const extension = image.src.split('.').pop();
-  let resized = false;
-  let { width, height } = image.size;
-  let ratio = 1;
-  if (width > maxWidth && extension !== 'gif') {
-    height = Math.round((height / width) * maxWidth);
-    ratio = maxWidth / width;
-    width = maxWidth;
-    resized = true;
-  } else if (extension === 'gif') {
-    ratio = 2;
-    if (width >= 600) {
-      ratio = 1.2;
-    } else if (width >= 500) {
-      ratio = 1.3;
-    } else if (width >= 400) {
-      ratio = 1.5;
-    }
-    width = Math.round(width * ratio);
-    height = Math.round(height * ratio);
-  }
-
   return (
     <>
       {showOriginal && (
@@ -115,11 +94,11 @@ export const LocalImage: FC<LocalImageProps> = ({ image, index }) => {
             style={{ maxWidth: width + 4 }}
             loading="lazy"
             alt={image.src}
+            onClick={handleImgClick(image, index)}
             className={classNames(styles.image, {
               [styles.resized]: resized || !!image.resizedDataUrl,
               [styles.selected]: isSelected,
             })}
-            onClick={handleImgClick(image, index)}
           />
         )}
 
@@ -131,6 +110,31 @@ export const LocalImage: FC<LocalImageProps> = ({ image, index }) => {
       </div>
     </>
   );
+};
+
+const getDimensions = (image: ImageWithDefinitions, maxWidth: number) => {
+  const extension = image.src.split('.').pop();
+  let resized = false;
+  let { width, height } = image.size;
+  let ratio = 1;
+  if (width > maxWidth && extension !== 'gif') {
+    height = Math.round((height / width) * maxWidth);
+    ratio = maxWidth / width;
+    width = maxWidth;
+    resized = true;
+  } else if (extension === 'gif') {
+    ratio = 2;
+    if (width >= 600) {
+      ratio = 1.2;
+    } else if (width >= 500) {
+      ratio = 1.3;
+    } else if (width >= 400) {
+      ratio = 1.5;
+    }
+    width = Math.round(width * ratio);
+    height = Math.round(height * ratio);
+  }
+  return { width, height, ratio, resized };
 };
 
 interface IControlsProps {

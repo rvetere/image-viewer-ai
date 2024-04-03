@@ -5,8 +5,8 @@ import {
   useImageOperations,
 } from '../../context/image.context';
 import { ImageFilter } from '../../context/types';
-import { useHandleNudityApi } from '../../hooks/useHandleNudityApi';
 import styles from './navigation.module.css';
+import { useNudityApi } from '../../hooks/useNudityApi';
 
 export const Navigation: FunctionComponent = () => {
   const {
@@ -22,6 +22,7 @@ export const Navigation: FunctionComponent = () => {
     setShowBoundingBox,
     handleBrowse,
   } = useImageOperations();
+  const { handleRunNudityApi } = useNudityApi();
 
   const handleFilterSexyOnly = () => {
     setFilter(filter === 'sexyOnly' ? 'all' : 'sexyOnly');
@@ -45,13 +46,10 @@ export const Navigation: FunctionComponent = () => {
     setOnlyFaves(!onlyFaves);
   };
 
-  const { handleNudityApi } = useHandleNudityApi();
-
   const toggleShowBoundingBox = () => setShowBoundingBox(!showBoundingBox);
 
-  const handleNudityFilter = (word: string) => () => {
+  const handleNudityFilter = (word: string) => () =>
     setFilter(word as ImageFilter);
-  };
 
   const wordCloud = useMemo<{ [name: string]: number }>(() => {
     const cloud: { [name: string]: number } = {};
@@ -144,7 +142,7 @@ export const Navigation: FunctionComponent = () => {
           </>
         )}
         {list.length > 0 && filter === 'sexyOnly' && (
-          <button onClick={handleNudityApi(nudityMap)}>Run Nudity API</button>
+          <button onClick={handleRunNudityApi()}>Run Nudity API</button>
         )}
 
         {Object.entries(wordCloud)
