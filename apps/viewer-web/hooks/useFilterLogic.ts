@@ -28,7 +28,6 @@ export const useFilterLogic = (
       lastData.length !== originalData.length ||
       lastFormat !== format
     ) {
-      console.log('Filtering data');
       setLastFilter(filter);
       setLastData(originalData);
       setLastFormat(format);

@@ -177,8 +177,7 @@ export const AppContextProvider: FunctionComponent<{
       .then((_model) => dispatch({ type: 'SET_MODEL', payload: _model }));
   }, [dispatch]);
 
-  const { model, browsingData, favorites, selectStartIndex, working } = state;
-  console.log({ working });
+  const { model, browsingData, favorites, selectStartIndex } = state;
 
   const operations = useMemo(
     () => ({
