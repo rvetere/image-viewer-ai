@@ -5,7 +5,7 @@
   "projectType": "application",
   "targets": {
     "build": {
-      "executor": "rocket-monkey-nx-electron:build",
+      "executor": "nx-electron:build",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/apps/viewer-app",
@@ -28,14 +28,14 @@
       }
     },
     "serve": {
-      "executor": "rocket-monkey-nx-electron:execute",
+      "executor": "nx-electron:execute",
       "options": {
         "buildTarget": "viewer-app:build",
         "inspect": false
       }
     },
     "package": {
-      "executor": "rocket-monkey-nx-electron:package",
+      "executor": "nx-electron:package",
       "options": {
         "name": "viewer-app",
         "frontendProject": "viewer-web",
@@ -44,7 +44,7 @@
       }
     },
     "make": {
-      "executor": "rocket-monkey-nx-electron:make",
+      "executor": "nx-electron:make",
       "options": {
         "name": "viewer-app",
         "frontendProject": "viewer-web",

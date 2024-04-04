@@ -1,0 +1,26 @@
+{
+  "name": "worker-thread",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/worker-thread/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/worker-thread",
+        "main": "libs/worker-thread/src/index.ts",
+        "tsConfig": "libs/worker-thread/tsconfig.lib.json",
+        "assets": ["libs/worker-thread/*.md"]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "libs/worker-thread/jest.config.ts"
+      }
+    }
+  }
+}

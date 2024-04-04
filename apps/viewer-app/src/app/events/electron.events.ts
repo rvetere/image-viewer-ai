@@ -6,9 +6,20 @@
 import * as deepAi from 'deepai';
 import { app, ipcMain } from 'electron';
 import * as fs from 'fs';
+import { StaticPool } from 'node-worker-threads-pool-ts';
+import * as nsfw from 'nsfwjs';
+import { cpus } from 'os';
+import { resolve } from 'path';
 import { environment } from '../../environments/environment';
 
 deepAi.setApiKey('3e882628-c80d-47d2-b998-79253fd76f15');
+
+let _model = null;
+nsfw.load().then((model) => {
+  _model = model;
+});
+
+const WORKER_AMOUNT = cpus().length > 3 ? cpus().length - 2 : 1;
 
 export default class ElectronEvents {
   static bootstrapElectronEvents(): Electron.IpcMain {
@@ -54,6 +65,37 @@ ipcMain.handle('get-data', (event, path) => {
     return fs.readFileSync(`${targetPath}`, 'utf8');
   }
   return null;
+});
+
+ipcMain.handle('classify-images', async (event, paths, existingDefs) => {
+  const batchSize = Math.ceil(paths.length / WORKER_AMOUNT);
+  console.log(
+    `🧵 Create worker pool of ${WORKER_AMOUNT}, each will scan ~${batchSize} files..`
+  );
+  const batchedFiles = [];
+  for (let i = 0; i < paths.length; i += batchSize) {
+    batchedFiles.push(paths.slice(i, i + batchSize));
+  }
+
+  const staticPool = new StaticPool({
+    size: WORKER_AMOUNT,
+    task: resolve(
+      __dirname,
+      '../../libs/worker-thread/src/lib/classifyImages.js'
+    ),
+  });
+
+  const allWorkers = batchedFiles.map((batch) =>
+    staticPool.exec({
+      files: batch,
+      existingDefs,
+    })
+  );
+  const allResults = await Promise.all(allWorkers);
+  const filesWithPredictions = allResults.flat();
+
+  staticPool.destroy();
+  return filesWithPredictions;
 });
 
 ipcMain.handle('nudity-ai', async (event, path) => {

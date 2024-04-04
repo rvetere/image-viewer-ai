@@ -7,11 +7,11 @@ import {
   useMemo,
   useReducer,
 } from 'react';
-import { ImageWithDefinitions, NudityResponse } from '../lib/types';
 import { useElectronFileSystem } from '../hooks/useElectronFileSystem';
 import { hashCode } from '../lib/hashCode';
-import { getImageDef } from '../lib/getImageDef';
 import { storeDataOnFileSystem } from '../lib/storeDataOnFileSystem';
+import { ImageWithDefinitions, NudityResponse } from '../lib/types';
+import { loadDataFromFileSystem } from '../lib/loadDataFromFileSystem';
 
 export interface IAppContext {
   working: boolean;
@@ -120,6 +120,7 @@ function appContextReducer(
       if (state.originalData.length === 0 && action.payload.length > 0) {
         return {
           ...state,
+          working: false,
           originalData: action.payload,
           browsingData: action.payload,
           selected: [],
@@ -218,77 +219,47 @@ export const AppContextProvider: FunctionComponent<{
         dispatch({ type: 'SET_FAVORITES', payload: favorites }),
       handleBrowse: () => {
         dispatch({ type: 'SET_WORKING', payload: true });
-        console.log('🚀 Browsing..');
+        console.log('🚀 Browse folder..');
         // @ts-expect-error bla
-        window.electron.browse().then(async ([dir, imagePaths]) => {
-          console.log('🚀 Got dir and imagePaths..', { dir, imagePaths });
-
-          console.log('🐌 Loading existing images defs..');
-          // @ts-expect-error bla
-          const existing = await window.electron.getData(
-            `${hashCode(dir)}.json`
-          );
-          let existingDefs = existing ? JSON.parse(existing) : [];
-          if (existingDefs.length > imagePaths.length) {
-            existingDefs = existingDefs.filter((existing) =>
-              imagePaths.map((i) => i.src).includes(existing.src)
-            );
-          }
-          let imagesWithDefsFinal = existingDefs.map((existing) => {
-            const image = imagePaths.find((i) => i.src === existing.src);
-            if (image && image.resizedDataUrl && !existing.resizedDataUrl) {
-              const maxWidth = 600;
-              const height = Math.round(
-                (existing.size.height / existing.size.width) * maxWidth
-              );
-              return {
-                ...existing,
-                size: {
-                  width: maxWidth,
-                  height,
-                },
-                resizedDataUrl: image.resizedDataUrl,
+        window.electron.browse().then(
+          async ([dir, imagePaths]: [
+            dir: string,
+            imagePaths: {
+              src: string;
+              size: {
+                width: number;
+                height: number;
               };
-            }
-            return existing;
-          });
-
-          const notFetched = imagePaths.filter(
-            (imagePath) =>
-              !existingDefs.find((def) => def.src === imagePath.src)
-          );
-          const promises = notFetched.map(async (imagePath) => {
-            const imageDefs = await getImageDef(imagePath, model);
-            return imageDefs;
-          });
-
-          const imageDefs = await Promise.all(promises);
-
-          const imagesWithDefs = notFetched.map((imagePath, index) => {
-            const defs = imageDefs[index];
-            return {
-              src: imagePath.src,
-              resizedDataUrl: imagePath.resizedDataUrl,
-              size: imagePath.size,
-              ...defs,
-            };
-          });
-
-          imagesWithDefsFinal = [...imagesWithDefsFinal, ...imagesWithDefs];
-
-          console.log('✅ Got all image defs..', { imagesWithDefsFinal, dir });
-          if (imagesWithDefsFinal.length > 0) {
-            dispatch({
-              type: 'SET_BROWSING_DATA',
-              payload: imagesWithDefsFinal,
+              resizedDataUrl?: string;
+            }[]
+          ]) => {
+            const dataFilePath = `${hashCode(dir)}.json`;
+            console.log('✅ All images in folder successfully prepared..', {
+              dir,
+              len: imagePaths.length,
             });
-            storeDataOnFileSystem(
-              `${hashCode(dir)}.json`,
-              JSON.stringify(imagesWithDefsFinal)
-            );
+            const existing = await loadDataFromFileSystem(dataFilePath);
+            const existingDefs = (existing ?? []) as ImageWithDefinitions[];
+
+            console.log('🚀 Classify images now, multi-threaded..');
+            // @ts-expect-error bla
+            window.electron
+              .classifyImages(imagePaths, existingDefs)
+              .then((classifiedImages) => {
+                console.log('✅ Got all image defs..', {
+                  classifiedImages,
+                });
+                dispatch({
+                  type: 'SET_BROWSING_DATA',
+                  payload: classifiedImages,
+                });
+                storeDataOnFileSystem(
+                  dataFilePath,
+                  JSON.stringify(classifiedImages)
+                );
+              });
           }
-          dispatch({ type: 'SET_WORKING', payload: false });
-        });
+        );
       },
       handleFavorite:
         (image: ImageWithDefinitions) =>

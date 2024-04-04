@@ -1,21 +1,17 @@
-import {
-  BrowserWindow,
-  app,
-  dialog,
-  ipcMain,
-  nativeImage,
-  screen,
-  shell,
-} from 'electron';
+import { BrowserWindow, app, dialog, ipcMain, screen, shell } from 'electron';
 import * as fg from 'fast-glob';
 import * as fs from 'fs';
-import { join } from 'path';
+import { StaticPool } from 'node-worker-threads-pool-ts';
+import { cpus } from 'os';
+import { join, resolve } from 'path';
 import { format } from 'url';
 import { environment } from '../environments/environment';
 import { rendererAppName, rendererAppPort } from './constants';
 // const Store = require('electron-store');
 
 // const store = new Store();
+
+const WORKER_AMOUNT = cpus().length > 3 ? cpus().length - 2 : 1;
 
 export default class App {
   // Keep a global reference of the window object, if you don't, the window will
@@ -97,52 +93,43 @@ export default class App {
           /\\/gi,
           '/'
         );
-      console.log({ pattern: pattern });
 
-      const entries = await fg([pattern], { dot: false });
-      console.log(`Found ${entries.length} image files`);
+      const files = await fg([pattern], { dot: false });
+      console.log(`Found ${files.length} image files`);
       const appDataPath = app.getPath('userData');
       fs.mkdirSync(`${appDataPath}/image-viewer/resized`, { recursive: true });
       console.log({ appDataPath });
 
-      let progress = 0;
-      const finalEntries = entries.map((entry, index) => {
-        progress = (100 * index) / entries.length;
-        console.log(`Progress: ${progress}%`);
+      const batchSize = Math.ceil(files.length / WORKER_AMOUNT);
+      console.log(
+        `🧵 Create worker pool of ${WORKER_AMOUNT}, each will scan ~${batchSize} files..`
+      );
+      const batchedFiles = [];
+      for (let i = 0; i < files.length; i += batchSize) {
+        batchedFiles.push(files.slice(i, i + batchSize));
+      }
 
-        const hash = hashCode(entry);
-        const targetPath = `${appDataPath}/image-viewer/resized/${hash}.jpg`;
-        if (fs.existsSync(targetPath)) {
-          return {
-            src: entry,
-            resizedDataUrl: targetPath,
-          };
-        } else {
-          const image = nativeImage.createFromPath(entry);
-          const size = image.getSize();
-          const extension = entry.split('.').pop();
-          if (extension !== 'gif') {
-            if (size.width > 600) {
-              console.log(
-                `Image too big (${size.width}x${size.height}) detected, resizing..`
-              );
-              const newJpeg = image.resize({ width: 600 }).toJPEG(100);
-              fs.writeFileSync(targetPath, newJpeg);
-              return {
-                src: entry,
-                resizedDataUrl: targetPath,
-              };
-            }
-          }
-          return {
-            src: entry,
-            resizedDataUrl: undefined,
-          };
-        }
+      const staticPool = new StaticPool({
+        size: WORKER_AMOUNT,
+        task: resolve(
+          __dirname,
+          '../../libs/worker-thread/src/lib/readImageFileDimensions.js'
+        ),
       });
 
+      const allWorkers = batchedFiles.map((batch) =>
+        staticPool.exec({
+          files: batch,
+          appDataPath,
+        })
+      );
+      const allResults = await Promise.all(allWorkers);
+      const finalEntries = allResults.flat();
+
+      staticPool.destroy();
+
       console.log('Processed all images', {
-        finalEntries: finalEntries.length,
+        filesWithDimensions: finalEntries.length,
       });
 
       return [path.filePaths[0], finalEntries];
@@ -199,19 +186,3 @@ export default class App {
     App.application.on('activate', App.onActivate); // App is activated
   }
 }
-
-const hashCode = (input: string) => {
-  if (!input) {
-    return -1;
-  }
-  let hash = 0,
-    i,
-    chr;
-  if (input.length === 0) return hash;
-  for (i = 0; i < input.length; i++) {
-    chr = input.charCodeAt(i);
-    hash = (hash << 5) - hash + chr;
-    hash |= 0; // Convert to 32bit integer
-  }
-  return hash;
-};
