@@ -63,29 +63,30 @@ export const LocalImage: FunctionComponent<LocalImageProps> = ({
         style={{ width, height }}
         className={styles.imageContainer}
       >
-        <NudityBoundingBoxes
-          ratio={ratio}
-          src={image.resizedDataUrl ? image.resizedDataUrl : image.src}
-        />
         {inView && (
-          <img
-            src={`file://${src}`}
-            loading="lazy"
-            alt={image.src}
-            style={{ maxWidth: width + 4 }}
-            onClick={handleImgClick}
-            className={classNames(styles.image, {
-              [styles.selected]: selected.includes(image.src),
-              [styles.resized]: resized || !!image.resizedDataUrl,
-            })}
-          />
+          <>
+            <NudityBoundingBoxes
+              ratio={ratio}
+              src={image.resizedDataUrl ? image.resizedDataUrl : image.src}
+            />
+            <img
+              src={`file://${src}`}
+              loading="lazy"
+              alt={image.src}
+              style={{ maxWidth: width + 4 }}
+              onClick={handleImgClick}
+              className={classNames(styles.image, {
+                [styles.selected]: selected.includes(image.src),
+                [styles.resized]: resized || !!image.resizedDataUrl,
+              })}
+            />
+            <Controls
+              image={image}
+              showOriginal={showOriginal}
+              setShowOriginal={setShowOriginal}
+            />
+          </>
         )}
-
-        <Controls
-          image={image}
-          showOriginal={showOriginal}
-          setShowOriginal={setShowOriginal}
-        />
       </div>
 
       {showOriginal && (
