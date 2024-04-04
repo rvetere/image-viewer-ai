@@ -1,14 +1,25 @@
-import { BrowserWindow, shell, screen, ipcMain, dialog, app } from 'electron';
-import { rendererAppName, rendererAppPort } from './constants';
-import { environment } from '../environments/environment';
-import { join } from 'path';
-import { nativeImage } from 'electron';
-import { format } from 'url';
-import * as fs from 'fs';
+import {
+  BrowserWindow,
+  app,
+  dialog,
+  ipcMain,
+  nativeImage,
+  screen,
+  shell,
+} from 'electron';
 import * as fg from 'fast-glob';
+import * as fs from 'fs';
+import { StaticPool } from 'node-worker-threads-pool-ts';
+import { cpus } from 'os';
+import { join } from 'path';
+import { format } from 'url';
+import { environment } from '../environments/environment';
+import { rendererAppName, rendererAppPort } from './constants';
 // const Store = require('electron-store');
 
 // const store = new Store();
+
+const WORKER_AMOUNT = cpus().length > 3 ? cpus().length - 2 : 1;
 
 export default class App {
   // Keep a global reference of the window object, if you don't, the window will
@@ -97,6 +108,15 @@ export default class App {
       const appDataPath = app.getPath('userData');
       fs.mkdirSync(`${appDataPath}/image-viewer/resized`, { recursive: true });
       console.log({ appDataPath });
+
+      const staticPool = new StaticPool({
+        size: WORKER_AMOUNT,
+        task: (n: number) => n + 1,
+      });
+
+      staticPool.exec(1).then((result) => {
+        console.log('💜 result from thread pool:', result); // result will be 2.
+      });
 
       // let progress = 0;
 

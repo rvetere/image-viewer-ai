@@ -1,10 +1,13 @@
-import { useCallback, useEffect } from 'react';
+import { Dispatch, useCallback, useEffect, useRef, useState } from 'react';
 import { useAppContext, useAppOperations } from '../context/appContext';
-import { IFilterContext } from '../context/filterContext';
+import { FilterContextAction, IFilterContext } from '../context/filterContext';
 import { ImageWithDefinitions, NudityResponse } from '../lib/types';
 
-export const useFilterLogic = (state: IFilterContext) => {
-  const { browsingData, nudityMap, favorites } = useAppContext();
+export const useFilterLogic = (
+  state: IFilterContext,
+  dispatch: Dispatch<FilterContextAction>
+) => {
+  const { originalData, nudityMap, favorites } = useAppContext();
   const { setBrowsingData } = useAppOperations();
 
   const { filterFn, sortWithFilterFn } = useFilterAndSort({
@@ -13,32 +16,60 @@ export const useFilterLogic = (state: IFilterContext) => {
     uiState: state,
   });
 
-  const { filter } = state;
+  const { filter, format } = state;
+  const [lastFilter, setLastFilter] = useState(filter);
+  const [lastData, setLastData] = useState(originalData);
+  const [lastFormat, setLastFormat] = useState(format);
+  const mountRef = useRef(false);
   useEffect(() => {
-    const newList: ImageWithDefinitions[] = browsingData
-      .filter(filterFn)
-      .sort((a, b) => {
-        const sizeA = a.size.width * a.size.height;
-        const sizeB = b.size.width * b.size.height;
-        if (sizeA > sizeB) {
-          return -1;
-        } else if (sizeA < sizeB) {
-          return 1;
-        }
-        return 0;
-      })
-      .sort((a, b) => {
-        if (filter === 'buttocksOnly') {
-          return sortWithFilterFn('buttocks')(a, b);
-        } else if (filter === 'breastsOnly') {
-          return sortWithFilterFn('breast')(a, b);
-        } else if (filter !== 'all' && filter !== 'sexyOnly') {
-          return sortWithFilterFn(filter)(a, b);
-        }
-        return 0;
-      });
-    setBrowsingData(newList);
-  }, [browsingData, filter, filterFn, sortWithFilterFn, setBrowsingData]);
+    if (
+      !mountRef.current ||
+      lastFilter !== filter ||
+      lastData.length !== originalData.length ||
+      lastFormat !== format
+    ) {
+      console.log('Filtering data');
+      setLastFilter(filter);
+      setLastData(originalData);
+      setLastFormat(format);
+      dispatch({ type: 'SET_STATE', payload: { filter } });
+      const newData: ImageWithDefinitions[] = originalData
+        .filter(filterFn)
+        .sort((a, b) => {
+          const sizeA = a.size.width * a.size.height;
+          const sizeB = b.size.width * b.size.height;
+          if (sizeA > sizeB) {
+            return -1;
+          } else if (sizeA < sizeB) {
+            return 1;
+          }
+          return 0;
+        })
+        .sort((a, b) => {
+          if (filter === 'buttocksOnly') {
+            return sortWithFilterFn('buttocks')(a, b);
+          } else if (filter === 'breastsOnly') {
+            return sortWithFilterFn('breast')(a, b);
+          } else if (filter !== 'all' && filter !== 'sexyOnly') {
+            return sortWithFilterFn(filter)(a, b);
+          }
+          return 0;
+        });
+      setBrowsingData(newData);
+    }
+    mountRef.current = true;
+  }, [
+    originalData,
+    filter,
+    filterFn,
+    sortWithFilterFn,
+    dispatch,
+    setBrowsingData,
+    lastFilter,
+    lastData,
+    lastFormat,
+    format,
+  ]);
 };
 
 type UseFilterAndSortParams = {
@@ -52,7 +83,6 @@ const useFilterAndSort = ({
   favorites,
   uiState: { filter, format, onlyFaves },
 }: UseFilterAndSortParams) => {
-  const { resetSelected } = useAppOperations();
   const filterFormat = useCallback(
     (image) => {
       if (format === 'all') {
@@ -94,7 +124,6 @@ const useFilterAndSort = ({
 
   const filterFn = useCallback(
     (image) => {
-      resetSelected();
       const withOnlyFave = onlyFaves ? favorites.includes(image.src) : true;
       const neutral = image.predictions.find((p) => p.className === 'Neutral');
       const sexy = image.predictions.find((p) => p.className === 'Sexy');
@@ -104,7 +133,6 @@ const useFilterAndSort = ({
         (sexy && sexy.probability >= 0.4) ||
         (hentai && hentai.probability >= 0.4) ||
         (porn && porn.probability >= 0.4);
-
       if (filter === 'all') {
         return true && filterFormat(image) && withOnlyFave;
       } else if (filter === 'buttocksOnly') {
@@ -139,15 +167,7 @@ const useFilterAndSort = ({
         return false;
       }
     },
-    [
-      filter,
-      filterFormat,
-      filterNudity,
-      nudityMap,
-      onlyFaves,
-      favorites,
-      resetSelected,
-    ]
+    [filter, filterFormat, filterNudity, nudityMap, onlyFaves, favorites]
   );
 
   const sortWithFilterFn = useCallback(

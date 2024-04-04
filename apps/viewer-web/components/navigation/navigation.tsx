@@ -75,66 +75,62 @@ export const Navigation: FunctionComponent = () => {
       {model && <button onClick={handleBrowse}>Browse</button>}
       <div className={styles.counter}>{browsingData.length}x</div>
       <div className={styles.mainFunctions}>
-        {browsingData.length > 0 && (
-          <>
-            <button
-              onClick={handleFilterSexyOnly}
-              className={classNames({
-                [styles.active]: filter === 'sexyOnly',
-              })}
-            >
-              Sexy only
-            </button>
-            <button
-              onClick={handleFilterButtocksOnly}
-              className={classNames({
-                [styles.active]: filter === 'buttocksOnly',
-              })}
-            >
-              Buttocks only
-            </button>
-            <button
-              onClick={handleFilterBreastsOnly}
-              className={classNames({
-                [styles.active]: filter === 'breastsOnly',
-              })}
-            >
-              Breasts only
-            </button>
-            <button
-              onClick={handleFormatGifsOnly}
-              className={classNames({
-                [styles.active]: format === 'gifsOnly',
-              })}
-            >
-              Gifs only
-            </button>
-            <button
-              onClick={handleFormatStaticOnly}
-              className={classNames({
-                [styles.active]: format === 'staticOnly',
-              })}
-            >
-              Static only
-            </button>
-            <button
-              onClick={handleOnlyFaves}
-              className={classNames({
-                [styles.active]: onlyFaves,
-              })}
-            >
-              💜
-            </button>
-            <button
-              onClick={toggleShowBoundingBox}
-              className={classNames({
-                [styles.active]: showBoundingBox,
-              })}
-            >
-              Bounding box
-            </button>
-          </>
-        )}
+        <button
+          onClick={handleFilterSexyOnly}
+          className={classNames({
+            [styles.active]: filter === 'sexyOnly',
+          })}
+        >
+          Sexy only
+        </button>
+        <button
+          onClick={handleFilterButtocksOnly}
+          className={classNames({
+            [styles.active]: filter === 'buttocksOnly',
+          })}
+        >
+          Buttocks only
+        </button>
+        <button
+          onClick={handleFilterBreastsOnly}
+          className={classNames({
+            [styles.active]: filter === 'breastsOnly',
+          })}
+        >
+          Breasts only
+        </button>
+        <button
+          onClick={handleFormatGifsOnly}
+          className={classNames({
+            [styles.active]: format === 'gifsOnly',
+          })}
+        >
+          Gifs only
+        </button>
+        <button
+          onClick={handleFormatStaticOnly}
+          className={classNames({
+            [styles.active]: format === 'staticOnly',
+          })}
+        >
+          Static only
+        </button>
+        <button
+          onClick={handleOnlyFaves}
+          className={classNames({
+            [styles.active]: onlyFaves,
+          })}
+        >
+          💜
+        </button>
+        <button
+          onClick={toggleShowBoundingBox}
+          className={classNames({
+            [styles.active]: showBoundingBox,
+          })}
+        >
+          Bounding box
+        </button>
         {browsingData.length > 0 && filter === 'sexyOnly' && (
           <button onClick={handleRunNudityApi()}>Run Nudity API</button>
         )}

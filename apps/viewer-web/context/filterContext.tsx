@@ -56,7 +56,7 @@ export const FilterContextProvider: FunctionComponent<{
 }> = ({ children }) => {
   const [state, dispatch] = useReducer(filterContextReducer, initialState);
 
-  useFilterLogic(state);
+  useFilterLogic(state, dispatch);
 
   const operations = useMemo(
     () => ({

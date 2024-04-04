@@ -21,6 +21,7 @@ export interface IAppContext {
   selectStartIndex: number;
   model: nsfwjs.NSFWJS;
   browsingDir: string | null;
+  originalData: ImageWithDefinitions[];
   browsingData: ImageWithDefinitions[];
   nudityMap: Map<string, NudityResponse>;
   favorites: string[];
@@ -62,6 +63,7 @@ const initialState: IAppContext = {
   working: false,
   model: {} as nsfwjs.NSFWJS,
   browsingDir: null,
+  originalData: [],
   browsingData: [],
   nudityMap: new Map<string, NudityResponse>(),
   favorites: [],
@@ -86,6 +88,21 @@ function appContextReducer(
         selectStartIndex: -1,
       };
     }
+    case 'SET_SELECTED':
+      return {
+        ...state,
+        selected: action.payload,
+      };
+    case 'SET_SUB_SELECTED':
+      return {
+        ...state,
+        subSelected: action.payload,
+      };
+    case 'SET_SEL_START_INDEX':
+      return {
+        ...state,
+        selectStartIndex: action.payload,
+      };
     case 'BROWSE': {
       const newState: IAppContext = {
         ...initialState, // reset state on every new browse action
@@ -100,9 +117,22 @@ function appContextReducer(
       };
     }
     case 'SET_BROWSING_DATA': {
+      if (state.originalData.length === 0 && action.payload.length > 0) {
+        return {
+          ...state,
+          originalData: action.payload,
+          browsingData: action.payload,
+          selected: [],
+          subSelected: [],
+          selectStartIndex: -1,
+        };
+      }
       const newState: IAppContext = {
         ...state,
         browsingData: action.payload,
+        selected: [],
+        subSelected: [],
+        selectStartIndex: -1,
       };
       return newState;
     }
@@ -147,19 +177,17 @@ export const AppContextProvider: FunctionComponent<{
       .then((_model) => dispatch({ type: 'SET_MODEL', payload: _model }));
   }, [dispatch]);
 
-  const { model, browsingData, favorites, selectStartIndex } = state;
-  useEffect(() => {
-    if (browsingData.length > 0) {
-      console.log(
-        'detected changes on "browsingData", resetting working state..'
-      );
-      dispatch({ type: 'SET_WORKING', payload: false });
-    }
-  }, [browsingData]);
+  const { model, browsingData, favorites, selectStartIndex, working } = state;
+  console.log({ working });
+
   const operations = useMemo(
     () => ({
-      handleReset: () => dispatch({ type: 'RESET' }),
-      resetSelected: () => dispatch({ type: 'RESET_SELECTED' }),
+      handleReset: () => {
+        dispatch({ type: 'RESET' });
+      },
+      resetSelected: () => {
+        dispatch({ type: 'RESET_SELECTED' });
+      },
       setSelected: (selected: string[]) =>
         dispatch({ type: 'SET_SELECTED', payload: selected }),
       setSubSelected: (subSelected: string[]) =>
@@ -249,7 +277,7 @@ export const AppContextProvider: FunctionComponent<{
 
           imagesWithDefsFinal = [...imagesWithDefsFinal, ...imagesWithDefs];
 
-          console.log('✅ Got all image defs..', { imageDefs, dir });
+          console.log('✅ Got all image defs..', { imagesWithDefsFinal, dir });
           if (imagesWithDefsFinal.length > 0) {
             dispatch({
               type: 'SET_BROWSING_DATA',
@@ -259,9 +287,8 @@ export const AppContextProvider: FunctionComponent<{
               `${hashCode(dir)}.json`,
               JSON.stringify(imagesWithDefsFinal)
             );
-          } else {
-            dispatch({ type: 'SET_WORKING', payload: false });
           }
+          dispatch({ type: 'SET_WORKING', payload: false });
         });
       },
       handleFavorite:
