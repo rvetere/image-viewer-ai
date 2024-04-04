@@ -10,15 +10,21 @@ interface IClassifyImagesParams {
 }
 
 const convert = async (image: any) => {
-  const numChannels = 3;
-  const numPixels = image.width * image.height;
-  const values = new Int32Array(numPixels * numChannels);
-
-  for (let i = 0; i < numPixels; i++)
-    for (let c = 0; c < numChannels; ++c)
-      values[i * numChannels + c] = image.data[i * 4 + c];
-
-  return tf.tensor3d(values, [image.height, image.width, numChannels], 'int32');
+  try {
+    const numChannels = 3;
+    const numPixels = image.width * image.height;
+    const values = new Int32Array(numPixels * numChannels);
+  
+    for (let i = 0; i < numPixels; i++)
+      for (let c = 0; c < numChannels; ++c)
+        values[i * numChannels + c] = image.data[i * 4 + c];
+  
+    return tf.tensor3d(values, [image.height, image.width, numChannels], 'int32');
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
+  
 };
 
 const getSharpImage = (filePath: string) => {
@@ -52,15 +58,33 @@ export const workerThread = async ({
       if (existing) {
         return { ...existing, resizedDataUrl, size };
       }
-      const sharp = await getSharpImage(src);
-      const image = await convert({ ...sharp.info, data: sharp.data });
-      const predictions = await _model.classify(image as any);
-      return {
-        src,
-        size,
-        resizedDataUrl,
-        predictions,
-      };
+      if (size.height > 8000 || size.width > 8000) {
+        console.log("Skip image as it exceeds a maximum of 8000 pixels");
+        return {
+          src,
+          size,
+          resizedDataUrl
+        };
+      }
+      try {
+        const sharp = await getSharpImage(resizedDataUrl ? resizedDataUrl : src);
+        const image = await convert({ ...sharp.info, data: sharp.data });
+        const predictions = image ? await _model.classify(image as any) : undefined;
+        return {
+          src,
+          size,
+          resizedDataUrl,
+          predictions,
+        };
+      } catch (e) {
+        console.error(e);
+        return {
+          src,
+          size,
+          resizedDataUrl,
+        };
+      }
+      
     }
   );
   const result = await Promise.all(finalEntries);

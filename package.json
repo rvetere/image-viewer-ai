@@ -12,6 +12,7 @@
   "dependencies": {
     "@nx/js": "18.2.2",
     "@nx/next": "18.2.2",
+    "@tensorflow/tfjs-node": "^4.17.0",
     "classnames": "^2.3.2",
     "core-js": "^3.6.5",
     "deepai": "^1.0.21",
@@ -52,7 +53,7 @@
     "@typescript-eslint/parser": "^5.36.1",
     "babel-jest": "28.1.1",
     "cypress": "^10.7.0",
-    "electron": "^20.2.0",
+    "electron": "29.2.0",
     "eslint": "~8.15.0",
     "eslint-config-next": "12.3.1",
     "eslint-config-prettier": "8.1.0",

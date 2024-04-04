@@ -28,13 +28,19 @@ const getImageSize = (path: string) => {
   );
 };
 
-const resizeImageWithSharp = async (path: string) => {
-  const image = sharp(path);
-  const metadata = await image.metadata();
-  if (metadata.width && metadata.width > 600) {
-    return image.resize(600).toBuffer();
-  }
-  return image.toBuffer();
+const resizeImageWithSharp = async (path: string, size: { width: number; height: number; }) => {
+  try {
+    const image = sharp(path);
+    const metadata = await image.metadata();
+    if (metadata.width && metadata.width > 600) {
+      return image.resize(600).toBuffer();
+    }
+    return image.toBuffer();
+  } catch (e) {
+    console.log("Image WAY TOO BIG", {size});
+    console.error(e);
+    return null;
+  }  
 };
 
 const hashCode = (input: string) => {
@@ -59,7 +65,15 @@ export const workerThread = async ({
 }: IReadImageFileDimensionsParams) => {
   const finalEntries = files.map(async (src, _index) => {
     const extension = src.split('.').pop();
-    const size = await getImageSize(src);
+    let size: {width?: number; height?: number} = {};
+    try {
+      const newSize = await getImageSize(src);
+      if (newSize) {
+        size = newSize;
+      }
+    } catch (e) {
+      // ignore, probably no image at all
+    }    
     const { width = 0, height = 0 } = size;
     const hash = hashCode(src);
     const targetPath = `${appDataPath}/image-viewer/resized/${hash}.jpg`;
@@ -73,16 +87,18 @@ export const workerThread = async ({
         },
       };
     } else if (width > 600 && extension !== 'gif') {
-      console.log(`Image too big (${width}x${height}) detected, resizing..`);
-      const newJpeg = await resizeImageWithSharp(src);
-      fs.writeFileSync(targetPath, newJpeg);
+      const newJpeg = await resizeImageWithSharp(src, {width, height});
+      if (newJpeg) {
+        fs.writeFileSync(targetPath, newJpeg);
+      }
+      
       return {
         src,
-        resizedDataUrl: targetPath,
-        size: {
+        resizedDataUrl: newJpeg ? targetPath : undefined,
+        size: newJpeg ? {
           width: 600,
           height: Math.round((height / width) * 600),
-        },
+        } : size,
       };
     }
     return {

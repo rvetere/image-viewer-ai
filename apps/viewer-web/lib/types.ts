@@ -10,7 +10,7 @@ export type BrowseResponse = {
 };
 
 export type ImageWithDefinitions = BrowseResponse & {
-  predictions: nsfwjs.predictionType[];
+  predictions?: nsfwjs.predictionType[];
 };
 
 type NudityDetections = {

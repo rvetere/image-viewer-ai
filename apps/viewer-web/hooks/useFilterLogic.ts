@@ -122,12 +122,12 @@ const useFilterAndSort = ({
   );
 
   const filterFn = useCallback(
-    (image) => {
+    (image: ImageWithDefinitions) => {
       const withOnlyFave = onlyFaves ? favorites.includes(image.src) : true;
-      const neutral = image.predictions.find((p) => p.className === 'Neutral');
-      const sexy = image.predictions.find((p) => p.className === 'Sexy');
-      const hentai = image.predictions.find((p) => p.className === 'Hentai');
-      const porn = image.predictions.find((p) => p.className === 'Porn');
+      const neutral = image.predictions?.find((p) => p.className === 'Neutral');
+      const sexy = image.predictions?.find((p) => p.className === 'Sexy');
+      const hentai = image.predictions?.find((p) => p.className === 'Hentai');
+      const porn = image.predictions?.find((p) => p.className === 'Porn');
       const isSexy =
         (sexy && sexy.probability >= 0.4) ||
         (hentai && hentai.probability >= 0.4) ||

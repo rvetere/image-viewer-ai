@@ -11,6 +11,7 @@ import * as nsfw from 'nsfwjs';
 import { cpus } from 'os';
 import { resolve } from 'path';
 import { environment } from '../../environments/environment';
+import { ImageWithDefinitions } from '../types';
 
 deepAi.setApiKey('3e882628-c80d-47d2-b998-79253fd76f15');
 
@@ -68,6 +69,19 @@ ipcMain.handle('get-data', (event, path) => {
 });
 
 ipcMain.handle('classify-images', async (event, paths, existingDefs) => {
+  let result = [];
+  const batchSize = 1000;
+  for (let i = 0; i < paths.length; i += batchSize) {
+    const batch = paths.slice(i, i + batchSize);
+    const batchResult = await classifyImages(batch, existingDefs);
+    result = [...result, ...batchResult];
+    await sleep(500);
+  }
+
+  return result;
+});
+
+const classifyImages = async (paths: string[], existingDefs: ImageWithDefinitions[]) => {
   const batchSize = Math.ceil(paths.length / WORKER_AMOUNT);
   console.log(
     `🧵 Create worker pool of ${WORKER_AMOUNT}, each will scan ~${batchSize} files..`
@@ -96,7 +110,7 @@ ipcMain.handle('classify-images', async (event, paths, existingDefs) => {
 
   staticPool.destroy();
   return filesWithPredictions;
-});
+}
 
 ipcMain.handle('nudity-ai', async (event, path) => {
   console.log(`Fetching nudity DeepAI: "${path}"`);
