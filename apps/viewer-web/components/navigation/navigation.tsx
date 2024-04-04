@@ -5,17 +5,14 @@ import {
   useFilterContext,
   useFilterOperations,
 } from '../../context/filterContext';
-import { useNudityApi } from '../../hooks/useNudityApi';
 import { ImageFilter } from '../../lib/types';
 import styles from './navigation.module.css';
 
 export const Navigation: FunctionComponent = () => {
-  const { browsingData, model, nudityMap } = useAppContext();
+  const { browsingData, originalData } = useAppContext();
   const { handleBrowse } = useAppOperations();
   const { filter, format, onlyFaves, showBoundingBox } = useFilterContext();
   const { setState } = useFilterOperations();
-
-  const { handleRunNudityApi } = useNudityApi();
 
   const handleFilterSexyOnly = () => {
     setState({ filter: filter === 'sexyOnly' ? 'all' : 'sexyOnly' });
@@ -47,32 +44,23 @@ export const Navigation: FunctionComponent = () => {
 
   const wordCloud = useMemo<{ [name: string]: number }>(() => {
     const cloud: { [name: string]: number } = {};
-    browsingData
+    originalData
       .map((image) => {
-        const nudity = nudityMap.get(
-          image.resizedDataUrl ? image.resizedDataUrl : image.src
-        );
-        return {
-          ...image,
-          ...nudity,
-        };
-      })
-      .map((image) => {
-        return [...((image.output && image.output.detections) || [])];
+        return [...(image.predictions?.parts || [])];
       })
       .filter((out) => !!out)
       .forEach((out) => {
         out.forEach((detection) => {
-          cloud[detection.name] =
-            (cloud[detection.name] || 0) + parseFloat(detection.confidence);
+          cloud[detection.class] =
+            (cloud[detection.class] || 0) + detection.score;
         });
       });
     return cloud;
-  }, [browsingData, nudityMap]);
+  }, [originalData]);
 
   return (
     <div className={styles.navigation}>
-      {model && <button onClick={handleBrowse}>Browse</button>}
+      <button onClick={handleBrowse}>Browse</button>
       <div className={styles.counter}>{browsingData.length}x</div>
       <div className={styles.mainFunctions}>
         <button
@@ -131,9 +119,6 @@ export const Navigation: FunctionComponent = () => {
         >
           Bounding box
         </button>
-        {browsingData.length > 0 && filter === 'sexyOnly' && (
-          <button onClick={handleRunNudityApi()}>Run Nudity API</button>
-        )}
 
         {Object.entries(wordCloud)
           .sort(([_aName, aConfidence], [_bName, bConfidence]) => {

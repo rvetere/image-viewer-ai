@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "dev:app": "nx run-many --parallel --target=serve --projects=viewer-app,viewer-web",
+    "dev:app": "nx run worker-thread:build && nx run-many --parallel --target=serve --projects=viewer-app,viewer-web",
     "start": "nx serve",
     "build": "nx build",
     "test": "nx test"
@@ -22,7 +22,6 @@
     "next": "14.1.4",
     "node-worker-threads-pool": "^1.5.1",
     "node-worker-threads-pool-ts": "^1.5.1",
-    "nsfwjs": "^2.4.2",
     "nx-electron": "17.0.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",

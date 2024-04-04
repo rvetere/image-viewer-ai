@@ -1,5 +1,3 @@
-import * as nsfwjs from 'nsfwjs';
-
 export type BrowseResponse = {
   src: string;
   resizedDataUrl?: string;
@@ -7,5 +5,20 @@ export type BrowseResponse = {
 };
 
 export type ImageWithDefinitions = BrowseResponse & {
-  predictions?: nsfwjs.predictionType[];
+  predictions?: {
+    input: {
+      file: any;
+      width: number | undefined;
+      height: number | undefined;
+    };
+    person: boolean;
+    sexy: boolean;
+    nude: boolean;
+    parts: {
+      score: number;
+      id: number;
+      class: string;
+      box: number[];
+    }[];
+  };
 };

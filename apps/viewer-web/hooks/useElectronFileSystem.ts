@@ -5,43 +5,13 @@ import { NudityResponse } from '../lib/types';
 
 type UseFilterAndSortParams = {
   browsingDir: string;
-  nudityMap: Map<string, NudityResponse>;
   favorites: string[];
 };
 
 export const useElectronFileSystem = (
-  { browsingDir, nudityMap, favorites }: UseFilterAndSortParams,
+  { browsingDir, favorites }: UseFilterAndSortParams,
   dispatch: Dispatch<AppContextAction>
 ) => {
-  const storeNudityMap = useCallback(
-    (_nudityMap: Map<string, NudityResponse>) => {
-      const serialize = {};
-      for (const [key, value] of _nudityMap.entries()) {
-        if (value && typeof value !== 'string') {
-          serialize[key] = value;
-        }
-      }
-      console.log('Save new nudityMap: ', Object.keys(serialize).length);
-
-      // @ts-expect-error bla
-      window.electron
-        .storeData(
-          `${hashCode(browsingDir)}_nudity.json`,
-          JSON.stringify(serialize)
-        )
-        .then((results) => {
-          console.log('🍆 Stored nudity data', { results });
-        });
-    },
-    [browsingDir]
-  );
-  useEffect(() => {
-    if (browsingDir && nudityMap.size > 0) {
-      console.log('💡 Store nudity map');
-      storeNudityMap(nudityMap);
-    }
-  }, [browsingDir, nudityMap, storeNudityMap]);
-
   useEffect(() => {
     if (favorites.length > 0) {
       // window.electron
@@ -59,22 +29,4 @@ export const useElectronFileSystem = (
   //     dispatch({ type: 'SET_FAVORITES', payload: favorites });
   //   }
   // });
-
-  // Restore possible existing nudityMap
-  useEffect(() => {
-    if (browsingDir) {
-      // @ts-expect-error bla
-      window.electron
-        .getData(`${hashCode(browsingDir)}_nudity.json`)
-        .then((nudityMapStr) => {
-          if (nudityMapStr) {
-            const newNudityMap = new Map<string, NudityResponse>(
-              Object.entries(JSON.parse(nudityMapStr))
-            );
-            console.log('✅ Nudity map restored!', { newNudityMap });
-            dispatch({ type: 'SET_NUDITY_MAP', payload: newNudityMap });
-          }
-        });
-    }
-  }, [browsingDir, dispatch]);
 };

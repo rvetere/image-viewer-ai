@@ -6,21 +6,11 @@
 import * as deepAi from 'deepai';
 import { app, ipcMain } from 'electron';
 import * as fs from 'fs';
-import { StaticPool } from 'node-worker-threads-pool-ts';
-import * as nsfw from 'nsfwjs';
-import { cpus } from 'os';
-import { resolve } from 'path';
 import { environment } from '../../environments/environment';
-import { ImageWithDefinitions } from '../types';
+import { classifyImages } from '../lib/classifyImages';
+import { sleep } from '../lib/sleep';
 
 deepAi.setApiKey('3e882628-c80d-47d2-b998-79253fd76f15');
-
-let _model = null;
-nsfw.load().then((model) => {
-  _model = model;
-});
-
-const WORKER_AMOUNT = cpus().length > 3 ? cpus().length - 2 : 1;
 
 export default class ElectronEvents {
   static bootstrapElectronEvents(): Electron.IpcMain {
@@ -33,6 +23,32 @@ ipcMain.handle('get-app-version', (event) => {
   console.log(`Fetching application version... [v${environment.version}]`);
 
   return environment.version;
+});
+
+ipcMain.handle('classify-images', async (event, paths, existingDefs) => {
+  // filter out images that already have definitions
+  const filteredPaths = paths.filter(({ src }) => {
+    const existing = existingDefs.find((def) => def.src === src);
+    if (existing) {
+      return !Boolean(existing.predictions);
+    }
+    return true;
+  });
+  // get all existing defs with predictions
+  const validExistingDefs = existingDefs.filter(({ predictions }) =>
+    Boolean(predictions)
+  );
+
+  let result = [...validExistingDefs];
+  const batchSize = 2000;
+  for (let i = 0; i < filteredPaths.length; i += batchSize) {
+    const batch = filteredPaths.slice(i, i + batchSize);
+    const batchResult = await classifyImages(batch);
+    result = [...result, ...batchResult];
+    await sleep(500);
+  }
+
+  return result;
 });
 
 ipcMain.handle('delete-image', (event, paths) => {
@@ -67,92 +83,6 @@ ipcMain.handle('get-data', (event, path) => {
   }
   return null;
 });
-
-ipcMain.handle('classify-images', async (event, paths, existingDefs) => {
-  let result = [];
-  const batchSize = 1000;
-  for (let i = 0; i < paths.length; i += batchSize) {
-    const batch = paths.slice(i, i + batchSize);
-    const batchResult = await classifyImages(batch, existingDefs);
-    result = [...result, ...batchResult];
-    await sleep(500);
-  }
-
-  return result;
-});
-
-const classifyImages = async (paths: string[], existingDefs: ImageWithDefinitions[]) => {
-  const batchSize = Math.ceil(paths.length / WORKER_AMOUNT);
-  console.log(
-    `🧵 Create worker pool of ${WORKER_AMOUNT}, each will scan ~${batchSize} files..`
-  );
-  const batchedFiles = [];
-  for (let i = 0; i < paths.length; i += batchSize) {
-    batchedFiles.push(paths.slice(i, i + batchSize));
-  }
-
-  const staticPool = new StaticPool({
-    size: WORKER_AMOUNT,
-    task: resolve(
-      __dirname,
-      '../../libs/worker-thread/src/lib/classifyImages.js'
-    ),
-  });
-
-  const allWorkers = batchedFiles.map((batch) =>
-    staticPool.exec({
-      files: batch,
-      existingDefs,
-    })
-  );
-  const allResults = await Promise.all(allWorkers);
-  const filesWithPredictions = allResults.flat();
-
-  staticPool.destroy();
-  return filesWithPredictions;
-}
-
-ipcMain.handle('nudity-ai', async (event, path) => {
-  console.log(`Fetching nudity DeepAI: "${path}"`);
-
-  const result = await deepAi.callStandardApi('content-moderation', {
-    image: fs.createReadStream(path),
-  });
-  console.log({ result });
-
-  return result;
-});
-
-ipcMain.handle('nudity-ai-bulk', async (event, paths) => {
-  console.log(`Fetching nudity DeepAI Bulk: "${paths.length}"`);
-
-  const promises = paths.map(async (path) => {
-    try {
-      const result = await deepAi.callStandardApi('content-moderation', {
-        image: fs.createReadStream(path),
-      });
-      console.log({ result });
-      await sleep(1500);
-
-      return result;
-    } catch (e) {
-      return null;
-    }
-  });
-
-  const results = await Promise.all(promises);
-  console.log(`Finished fetching ${results.length} requests with nudity API..`);
-
-  return results;
-});
-
-const sleep = (time: number): Promise<void> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve();
-    }, time);
-  });
-};
 
 // Handle App termination
 ipcMain.on('quit', (event, code) => {

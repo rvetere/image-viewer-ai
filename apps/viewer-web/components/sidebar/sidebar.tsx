@@ -3,20 +3,12 @@ import classNames from 'classnames';
 import { FunctionComponent, useState } from 'react';
 import { useAppContext, useAppOperations } from '../../context/appContext';
 import { hashCode } from '../../lib/hashCode';
-import { NudityResponse } from '../../lib/types';
 import styles from './sidebar.module.css';
 
 export const Sidebar: FunctionComponent = () => {
-  const {
-    selected,
-    subSelected,
-    progress,
-    browsingData,
-    nudityMap,
-    browsingDir,
-  } = useAppContext();
-  const { setSelected, setSubSelected, setBrowsingData, setNudityMap } =
-    useAppOperations();
+  const { selected, subSelected, progress, browsingData, browsingDir } =
+    useAppContext();
+  const { setSelected, setSubSelected, setBrowsingData } = useAppOperations();
 
   const [sureToDelete, setSureToDelete] = useState(false);
   const handleDelete = () => {
@@ -29,14 +21,6 @@ export const Sidebar: FunctionComponent = () => {
   const handleDeleteFinal = () => {
     // @ts-expect-error bla
     window.electron.deleteImage(subSelected).then((results) => {
-      const newNudityMap = new Map<string, NudityResponse>();
-      for (const [key, value] of nudityMap.entries()) {
-        if (!selected.includes(key)) {
-          newNudityMap.set(key, value);
-        }
-      }
-      setNudityMap(newNudityMap);
-
       const newSubSelected = subSelected.filter(
         (src) => !subSelected.includes(src)
       );

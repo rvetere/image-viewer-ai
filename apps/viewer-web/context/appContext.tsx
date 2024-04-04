@@ -1,17 +1,10 @@
-import * as nsfwjs from 'nsfwjs';
 import type { FunctionComponent, MouseEvent, ReactNode } from 'react';
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useReducer,
-} from 'react';
+import { createContext, useContext, useMemo, useReducer } from 'react';
 import { useElectronFileSystem } from '../hooks/useElectronFileSystem';
 import { hashCode } from '../lib/hashCode';
-import { storeDataOnFileSystem } from '../lib/storeDataOnFileSystem';
-import { ImageWithDefinitions, NudityResponse } from '../lib/types';
 import { loadDataFromFileSystem } from '../lib/loadDataFromFileSystem';
+import { storeDataOnFileSystem } from '../lib/storeDataOnFileSystem';
+import { ImageWithDefinitions } from '../lib/types';
 
 export interface IAppContext {
   working: boolean;
@@ -19,11 +12,9 @@ export interface IAppContext {
   selected: string[];
   subSelected: string[];
   selectStartIndex: number;
-  model: nsfwjs.NSFWJS;
   browsingDir: string | null;
   originalData: ImageWithDefinitions[];
   browsingData: ImageWithDefinitions[];
-  nudityMap: Map<string, NudityResponse>;
   favorites: string[];
 }
 
@@ -31,7 +22,6 @@ export interface IAppOperationsContext {
   setWorking: (working: boolean) => void;
   setBrowsingData: (browsingData: ImageWithDefinitions[]) => void;
   setFavorites: (favorites: string[]) => void;
-  setNudityMap: (nudityMap: Map<string, NudityResponse>) => void;
   resetSelected: () => void;
   setSelected: (selected: string[]) => void;
   setSubSelected: (subSelected: string[]) => void;
@@ -47,8 +37,6 @@ export interface IAppOperationsContext {
 
 export type AppContextAction =
   | { type: 'SET_WORKING'; payload: boolean }
-  | { type: 'SET_MODEL'; payload: nsfwjs.NSFWJS }
-  | { type: 'SET_NUDITY_MAP'; payload: Map<string, NudityResponse> }
   | { type: 'SET_BROWSING_DATA'; payload: ImageWithDefinitions[] }
   | { type: 'BROWSE'; payload: { dir: string; imagePaths: string[] } }
   | { type: 'SET_FAVORITES'; payload: string[] }
@@ -61,11 +49,9 @@ export type AppContextAction =
 
 const initialState: IAppContext = {
   working: false,
-  model: {} as nsfwjs.NSFWJS,
   browsingDir: null,
   originalData: [],
   browsingData: [],
-  nudityMap: new Map<string, NudityResponse>(),
   favorites: [],
   progress: 0,
   selected: [],
@@ -144,14 +130,6 @@ function appContextReducer(
       };
       return newState;
     }
-    case 'SET_MODEL': {
-      const newState: IAppContext = { ...state, model: action.payload };
-      return newState;
-    }
-    case 'SET_NUDITY_MAP': {
-      const newState: IAppContext = { ...state, nudityMap: action.payload };
-      return newState;
-    }
     case 'SET_PROGRESS': {
       return { ...state, progress: action.payload };
     }
@@ -171,14 +149,7 @@ export const AppContextProvider: FunctionComponent<{
 
   useElectronFileSystem(state, dispatch);
 
-  // Load the NSFW model
-  useEffect(() => {
-    nsfwjs
-      .load()
-      .then((_model) => dispatch({ type: 'SET_MODEL', payload: _model }));
-  }, [dispatch]);
-
-  const { model, browsingData, favorites, selectStartIndex } = state;
+  const { browsingData, favorites, selectStartIndex } = state;
 
   const operations = useMemo(
     () => ({
@@ -213,8 +184,6 @@ export const AppContextProvider: FunctionComponent<{
         dispatch({ type: 'SET_WORKING', payload: working }),
       setBrowsingData: (browsingData: ImageWithDefinitions[]) =>
         dispatch({ type: 'SET_BROWSING_DATA', payload: browsingData }),
-      setNudityMap: (nudityMap: Map<string, NudityResponse>) =>
-        dispatch({ type: 'SET_NUDITY_MAP', payload: nudityMap }),
       setFavorites: (favorites: string[]) =>
         dispatch({ type: 'SET_FAVORITES', payload: favorites }),
       handleBrowse: () => {
@@ -222,8 +191,9 @@ export const AppContextProvider: FunctionComponent<{
         console.log('🚀 Browse folder..');
         // @ts-expect-error bla
         window.electron.browse().then(
-          async ([dir, imagePaths]: [
+          async ([dir, imagePaths, appDataPath]: [
             dir: string,
+            appDataPath: string,
             imagePaths: {
               src: string;
               size: {
@@ -274,7 +244,7 @@ export const AppContextProvider: FunctionComponent<{
           }
         },
     }),
-    [favorites, model, browsingData, selectStartIndex]
+    [browsingData, favorites, selectStartIndex]
   );
 
   return (

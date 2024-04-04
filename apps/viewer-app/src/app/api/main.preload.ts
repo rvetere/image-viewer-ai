@@ -6,9 +6,6 @@ contextBridge.exposeInMainWorld('electron', {
   browse: () => ipcRenderer.invoke('browse'),
   classifyImages: (paths: string[], existingDefs: ImageWithDefinitions[]) =>
     ipcRenderer.invoke('classify-images', paths, existingDefs),
-  nudityAi: (path: string) => ipcRenderer.invoke('nudity-ai', path),
-  nudityAiBulk: (paths: string[]) =>
-    ipcRenderer.invoke('nudity-ai-bulk', paths),
   deleteImage: (paths: string[]) => ipcRenderer.invoke('delete-image', paths),
   storeData: (path: string, content: string) =>
     ipcRenderer.invoke('store-data', path, content),

@@ -1,17 +1,16 @@
 import { Dispatch, useCallback, useEffect, useRef, useState } from 'react';
 import { useAppContext, useAppOperations } from '../context/appContext';
 import { FilterContextAction, IFilterContext } from '../context/filterContext';
-import { ImageWithDefinitions, NudityResponse } from '../lib/types';
+import { ImageWithDefinitions } from '../lib/types';
 
 export const useFilterLogic = (
   state: IFilterContext,
   dispatch: Dispatch<FilterContextAction>
 ) => {
-  const { originalData, nudityMap, favorites } = useAppContext();
+  const { originalData, favorites } = useAppContext();
   const { setBrowsingData } = useAppOperations();
 
   const { filterFn, sortWithFilterFn } = useFilterAndSort({
-    nudityMap,
     favorites,
     uiState: state,
   });
@@ -72,13 +71,11 @@ export const useFilterLogic = (
 };
 
 type UseFilterAndSortParams = {
-  nudityMap: Map<string, NudityResponse>;
   favorites: string[];
   uiState: IFilterContext;
 };
 
 const useFilterAndSort = ({
-  nudityMap,
   favorites,
   uiState: { filter, format, onlyFaves },
 }: UseFilterAndSortParams) => {
@@ -98,67 +95,44 @@ const useFilterAndSort = ({
   );
 
   const filterNudity = useCallback(
-    (search, isSexy, neutral) => (image) => {
-      const nudity = nudityMap.get(
-        image.resizedDataUrl ? image.resizedDataUrl : image.src
-      );
-      if (nudity) {
-        const check =
-          nudity.output &&
-          nudity.output.detections.find((d) =>
-            d.name.toLowerCase().includes(search)
-          );
-        return (
-          isSexy &&
-          neutral.probability < 0.3 &&
-          check &&
-          parseFloat(check.confidence) > 0.67 &&
-          filterFormat(image)
+    (search, isSexy) => (image: ImageWithDefinitions) => {
+      if (image.predictions?.parts.length > 0) {
+        const check = image.predictions?.parts.find((d) =>
+          d.class.toLowerCase().includes(search)
         );
+        return isSexy && check?.score > 0.67 && filterFormat(image);
       }
       return false;
     },
-    [filterFormat, nudityMap]
+    [filterFormat]
   );
 
   const filterFn = useCallback(
     (image: ImageWithDefinitions) => {
       const withOnlyFave = onlyFaves ? favorites.includes(image.src) : true;
-      const neutral = image.predictions?.find((p) => p.className === 'Neutral');
-      const sexy = image.predictions?.find((p) => p.className === 'Sexy');
-      const hentai = image.predictions?.find((p) => p.className === 'Hentai');
-      const porn = image.predictions?.find((p) => p.className === 'Porn');
-      const isSexy =
-        (sexy && sexy.probability >= 0.4) ||
-        (hentai && hentai.probability >= 0.4) ||
-        (porn && porn.probability >= 0.4);
+      // const neutral = image.predictions?.find((p) => p.className === 'Neutral');
+      // const sexy = image.predictions?.find((p) => p.className === 'Sexy');
+      // const hentai = image.predictions?.find((p) => p.className === 'Hentai');
+      // const porn = image.predictions?.find((p) => p.className === 'Porn');
+      const isSexy = image.predictions?.sexy || image.predictions?.nude;
       if (filter === 'all') {
         return true && filterFormat(image) && withOnlyFave;
       } else if (filter === 'buttocksOnly') {
-        return filterNudity('buttocks', isSexy, neutral)(image) && withOnlyFave;
+        return filterNudity('buttocks', isSexy)(image) && withOnlyFave;
       } else if (filter === 'breastsOnly') {
-        return filterNudity('breast', isSexy, neutral)(image) && withOnlyFave;
+        return filterNudity('breast', isSexy)(image) && withOnlyFave;
       } else if (filter === 'sexyOnly') {
-        return (
-          isSexy &&
-          neutral.probability < 0.3 &&
-          filterFormat(image) &&
-          withOnlyFave
-        );
+        return isSexy && filterFormat(image) && withOnlyFave;
       } else {
         // word filter
-        const nudity = nudityMap.get(
-          image.resizedDataUrl ? image.resizedDataUrl : image.src
-        );
-        if (nudity) {
-          const check =
-            nudity.output &&
-            nudity.output.detections.find((d) => d.name.includes(filter));
+        if (image.predictions?.parts.length > 0) {
+          const check = image.predictions?.parts.find((d) =>
+            d.class.includes(filter)
+          );
           return (
             isSexy &&
-            neutral.probability < 0.3 &&
             check &&
-            parseFloat(check.confidence) > 0.67 &&
+            check.score > 0.67 &&
             filterFormat(image) &&
             withOnlyFave
           );
@@ -166,30 +140,22 @@ const useFilterAndSort = ({
         return false;
       }
     },
-    [filter, filterFormat, filterNudity, nudityMap, onlyFaves, favorites]
+    [filter, filterFormat, filterNudity, onlyFaves, favorites]
   );
 
   const sortWithFilterFn = useCallback(
     (search: string) => (a: ImageWithDefinitions, b: ImageWithDefinitions) => {
-      const aNudity = nudityMap.get(
-        a.resizedDataUrl ? a.resizedDataUrl : a.src
+      const aCheck = a.predictions?.parts.find((d) =>
+        d.class.toLowerCase().includes(search)
       );
-      const bNudity = nudityMap.get(
-        b.resizedDataUrl ? b.resizedDataUrl : b.src
+      const bCheck = b.predictions?.parts.find((d) =>
+        d.class.toLowerCase().includes(search)
       );
-      if (aNudity && bNudity) {
-        const aCheck = aNudity.output.detections.find((d) =>
-          d.name.toLowerCase().includes(search)
-        );
-        const bCheck = bNudity.output.detections.find((d) =>
-          d.name.toLowerCase().includes(search)
-        );
-        if (aCheck && bCheck) {
-          return parseFloat(bCheck.confidence) - parseFloat(aCheck.confidence);
-        }
+      if (aCheck && bCheck) {
+        return bCheck.score - aCheck.score;
       }
     },
-    [nudityMap]
+    []
   );
 
   return { filterFn, sortWithFilterFn };

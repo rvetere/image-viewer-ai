@@ -132,7 +132,7 @@ export default class App {
         filesWithDimensions: finalEntries.length,
       });
 
-      return [path.filePaths[0], finalEntries];
+      return [path.filePaths[0], finalEntries, appDataPath];
     });
     App.mainWindow.setMenu(null);
     App.mainWindow.center();

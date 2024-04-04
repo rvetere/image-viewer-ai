@@ -18,7 +18,7 @@ export const LocalImage: FunctionComponent<LocalImageProps> = ({
   image,
   index,
 }) => {
-  const { nudityMap, selected } = useAppContext();
+  const { selected } = useAppContext();
   const src = image.resizedDataUrl ?? image.src;
 
   const { setSelected, handleSelect } = useAppOperations();
@@ -42,18 +42,6 @@ export const LocalImage: FunctionComponent<LocalImageProps> = ({
         setSelected(selected.filter((src) => src !== image.src));
       }
     }
-
-    if (!nudityMap.has(src)) {
-      // window.electron.nudityAi(src).then((result) => {
-      //   setNudityMap((prev) => {
-      //     const newMap = new Map(prev);
-      //     newMap.set(src, result);
-      //     return newMap;
-      //   });
-      // });
-    } else {
-      console.log(nudityMap.get(src));
-    }
   };
 
   return (
@@ -65,10 +53,7 @@ export const LocalImage: FunctionComponent<LocalImageProps> = ({
       >
         {inView && (
           <>
-            <NudityBoundingBoxes
-              ratio={ratio}
-              src={image.resizedDataUrl ? image.resizedDataUrl : image.src}
-            />
+            <NudityBoundingBoxes ratio={ratio} image={image} />
             <img
               src={`file://${src}`}
               loading="lazy"

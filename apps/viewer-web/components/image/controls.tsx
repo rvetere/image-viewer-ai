@@ -39,10 +39,10 @@ export const Controls: FunctionComponent<IControlsProps> = ({
       {!showOriginal && (
         <div className={classNames(styles.text, styles.predictions)}>
           {image.predictions &&
-            image.predictions?.map((p, index) => (
+            image.predictions?.parts.map((p, index) => (
               <span key={`prediction-${index}`}>
-                {p.className}
-                <sup>{p.probability.toFixed(2)}</sup>
+                {p.class}
+                <sup>{p.score.toFixed(2)}</sup>
               </span>
             ))}
         </div>

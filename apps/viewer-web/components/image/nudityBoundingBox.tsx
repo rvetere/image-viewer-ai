@@ -1,22 +1,20 @@
+import { ImageWithDefinitions } from 'apps/viewer-web/lib/types';
 import { FunctionComponent } from 'react';
-import { useAppContext } from '../../context/appContext';
 import { useFilterContext } from '../../context/filterContext';
 import styles from './nudityBoundingBox.module.css';
 
 export const NudityBoundingBoxes: FunctionComponent<{
-  src: string;
+  image: ImageWithDefinitions;
   ratio: number;
-}> = ({ src, ratio }) => {
-  const { nudityMap } = useAppContext();
+}> = ({ image, ratio }) => {
   const { showBoundingBox } = useFilterContext();
-  const nudity = nudityMap.get(src);
-  if (!showBoundingBox || !nudity || !nudity.output) {
+  if (!showBoundingBox) {
     return null;
   }
 
   return (
     <>
-      {nudity.output.detections.map((detection, index) => (
+      {image.predictions?.parts.map(({ box, class: label, score }, index) => (
         <div
           key={`box-${index}`}
           className={styles.boundingBox}
@@ -24,15 +22,15 @@ export const NudityBoundingBoxes: FunctionComponent<{
             pointerEvents: 'none',
             position: 'absolute',
             border: `1px solid ${getBoundingBoxColor(index)}`,
-            left: detection.bounding_box[0] * ratio,
-            top: detection.bounding_box[1] * ratio,
-            width: detection.bounding_box[2] * ratio,
-            height: detection.bounding_box[3] * ratio,
+            left: box[0] * ratio,
+            top: box[1] * ratio,
+            width: box[2] * ratio,
+            height: box[3] * ratio,
           }}
         >
           <span>
-            {detection.name}
-            <sup>{detection.confidence}</sup>
+            {label}
+            <sup>{score}</sup>
           </span>
         </div>
       ))}
