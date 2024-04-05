@@ -3,14 +3,11 @@
  * between the frontend to the electron backend.
  */
 
-import * as deepAi from 'deepai';
 import { app, ipcMain } from 'electron';
 import * as fs from 'fs';
 import { environment } from '../../environments/environment';
 import { classifyImages } from '../lib/classifyImages';
 import { sleep } from '../lib/sleep';
-
-deepAi.setApiKey('3e882628-c80d-47d2-b998-79253fd76f15');
 
 export default class ElectronEvents {
   static bootstrapElectronEvents(): Electron.IpcMain {
@@ -30,13 +27,13 @@ ipcMain.handle('classify-images', async (event, paths, existingDefs) => {
   const filteredPaths = paths.filter(({ src }) => {
     const existing = existingDefs.find((def) => def.src === src);
     if (existing) {
-      return !Boolean(existing.predictions);
+      return !Boolean(existing.nudenet);
     }
     return true;
   });
-  // get all existing defs with predictions
-  const validExistingDefs = existingDefs.filter(({ predictions }) =>
-    Boolean(predictions)
+  // get all existing defs with nudenet
+  const validExistingDefs = existingDefs.filter(({ nudenet }) =>
+    Boolean(nudenet)
   );
 
   let result = [...validExistingDefs];

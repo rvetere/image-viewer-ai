@@ -8,7 +8,7 @@ export type BrowseResponse = {
 };
 
 export type ImageWithDefinitions = BrowseResponse & {
-  predictions?: {
+  nudenet?: {
     input: {
       file: any;
       width: number | undefined;

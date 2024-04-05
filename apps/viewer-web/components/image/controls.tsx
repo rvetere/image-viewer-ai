@@ -37,9 +37,9 @@ export const Controls: FunctionComponent<IControlsProps> = ({
       </button>
 
       {!showOriginal && (
-        <div className={classNames(styles.text, styles.predictions)}>
-          {image.predictions &&
-            image.predictions?.parts.map((p, index) => (
+        <div className={classNames(styles.text, styles.nudenet)}>
+          {image.nudenet &&
+            image.nudenet?.parts.map((p, index) => (
               <span key={`prediction-${index}`}>
                 {p.class}
                 <sup>{p.score.toFixed(2)}</sup>

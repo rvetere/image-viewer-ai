@@ -96,8 +96,8 @@ const useFilterAndSort = ({
 
   const filterNudity = useCallback(
     (search, isSexy) => (image: ImageWithDefinitions) => {
-      if (image.predictions?.parts.length > 0) {
-        const check = image.predictions?.parts.find((d) =>
+      if (image.nudenet?.parts.length > 0) {
+        const check = image.nudenet?.parts.find((d) =>
           d.class.toLowerCase().includes(search)
         );
         return isSexy && check?.score > 0.67 && filterFormat(image);
@@ -110,11 +110,7 @@ const useFilterAndSort = ({
   const filterFn = useCallback(
     (image: ImageWithDefinitions) => {
       const withOnlyFave = onlyFaves ? favorites.includes(image.src) : true;
-      // const neutral = image.predictions?.find((p) => p.className === 'Neutral');
-      // const sexy = image.predictions?.find((p) => p.className === 'Sexy');
-      // const hentai = image.predictions?.find((p) => p.className === 'Hentai');
-      // const porn = image.predictions?.find((p) => p.className === 'Porn');
-      const isSexy = image.predictions?.sexy || image.predictions?.nude;
+      const isSexy = image.nudenet?.sexy || image.nudenet?.nude;
       if (filter === 'all') {
         return true && filterFormat(image) && withOnlyFave;
       } else if (filter === 'buttocksOnly') {
@@ -125,8 +121,8 @@ const useFilterAndSort = ({
         return isSexy && filterFormat(image) && withOnlyFave;
       } else {
         // word filter
-        if (image.predictions?.parts.length > 0) {
-          const check = image.predictions?.parts.find((d) =>
+        if (image.nudenet?.parts.length > 0) {
+          const check = image.nudenet?.parts.find((d) =>
             d.class.includes(filter)
           );
           return (
@@ -145,10 +141,10 @@ const useFilterAndSort = ({
 
   const sortWithFilterFn = useCallback(
     (search: string) => (a: ImageWithDefinitions, b: ImageWithDefinitions) => {
-      const aCheck = a.predictions?.parts.find((d) =>
+      const aCheck = a.nudenet?.parts.find((d) =>
         d.class.toLowerCase().includes(search)
       );
-      const bCheck = b.predictions?.parts.find((d) =>
+      const bCheck = b.nudenet?.parts.find((d) =>
         d.class.toLowerCase().includes(search)
       );
       if (aCheck && bCheck) {

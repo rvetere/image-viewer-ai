@@ -44,14 +44,12 @@ export const workerThread = async ({ files }: IClassifyImagesParams) => {
       const res = await getSharpJpgImageBuffer(
         resizedDataUrl ? resizedDataUrl : src
       );
-      const predictions = model
-        ? await runDetection(model, src, res.data)
-        : null;
+      const nudenet = model ? await runDetection(model, src, res.data) : null;
       return {
         src,
         size,
         resizedDataUrl,
-        predictions,
+        nudenet,
       };
     } catch (e) {
       console.error(e);

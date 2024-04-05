@@ -14,7 +14,7 @@ export const NudityBoundingBoxes: FunctionComponent<{
 
   return (
     <>
-      {image.predictions?.parts.map(({ box, class: label, score }, index) => (
+      {image.nudenet?.parts.map(({ box, class: label, score }, index) => (
         <div
           key={`box-${index}`}
           className={styles.boundingBox}

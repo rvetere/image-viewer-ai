@@ -46,7 +46,7 @@ export const Navigation: FunctionComponent = () => {
     const cloud: { [name: string]: number } = {};
     originalData
       .map((image) => {
-        return [...(image.predictions?.parts || [])];
+        return [...(image.nudenet?.parts || [])];
       })
       .filter((out) => !!out)
       .forEach((out) => {

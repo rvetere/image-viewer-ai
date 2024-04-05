@@ -28,8 +28,8 @@ export const classifyImages = async (paths: string[]) => {
     })
   );
   const allResults = await Promise.all(allWorkers);
-  const filesWithPredictions = allResults.flat();
+  const filesWithNudenet = allResults.flat();
 
   staticPool.destroy();
-  return filesWithPredictions;
+  return filesWithNudenet;
 };
