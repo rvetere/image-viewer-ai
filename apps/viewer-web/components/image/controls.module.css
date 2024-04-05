@@ -11,11 +11,12 @@
 
 .favorite {
   position: absolute;
-  height: 32px;
-  font-size: 18px;
-  background: rgba(88, 88, 88, 0.75);
   left: 4px;
   top: 4px;
+}
+
+.favoriteHeart {
+  margin-left: 4px;
 }
 
 .text {

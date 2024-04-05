@@ -54,10 +54,6 @@ ipcMain.handle('classify-images', async (event, paths, existingDefs) => {
   return result;
 });
 
-ipcMain.handle('insert-scans', (event, directories) => {
-  return insertScans(directories);
-});
-
 ipcMain.handle('insert-files', (event, scanId, files) => {
   return insertFiles(scanId, files);
 });

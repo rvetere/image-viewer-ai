@@ -1,6 +1,6 @@
 import { HomePage } from '../components/homePage';
 
-export function Index() {
+function Index() {
   return <HomePage />;
 }
 

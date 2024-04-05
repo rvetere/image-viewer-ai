@@ -46,22 +46,25 @@ export const Controls: FunctionComponent<IControlsProps> = ({
 const FavoriteCheckbox: FunctionComponent<{ image: ImageWithDefinitions }> = ({
   image,
 }) => {
-  const { favorites } = useAppContext();
   const { handleFavorite } = useAppOperations();
   const [isChecked, setIsChecked] = useState<boolean>(image.favorite);
   const changeHandler = handleFavorite(image);
   return (
-    <label className={styles.favoriteLabel}>
-      {favorites.includes(image.src) ? '💜' : '🤍'}
+    <label
+      className={`inline-flex items-center cursor-pointer ${styles.favorite}`}
+    >
       <input
         type="checkbox"
+        className="sr-only peer"
         checked={isChecked}
         onChange={(e) => {
           setIsChecked(e.target.checked);
           changeHandler(e);
         }}
-        className={styles.favorite}
       />
+      <span className="w-6 h-6 inline-block mr-2 rounded border border-gray-300 bg-white peer-checked:bg-blue-500 peer-checked:border-blue-500">
+        <span className={styles.favoriteHeart}>{isChecked ? '💜' : '🤍'}</span>
+      </span>
     </label>
   );
 };

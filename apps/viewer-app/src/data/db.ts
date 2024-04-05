@@ -31,6 +31,9 @@ CREATE TABLE IF NOT EXISTS files (
 };
 
 export const insertScans = (directories: string[]) => {
+  if (directories.length === 0) {
+    return null;
+  }
   const insert = db.prepare('INSERT INTO scans (directory) VALUES (?)');
   const insertMany = db.transaction((dirs) => {
     for (const dir of dirs) insert.run(dir);
@@ -61,6 +64,9 @@ export const deleteScan = (id: number) => {
 };
 
 export const insertFiles = (scanId: number, files: ImageWithDefinitions[]) => {
+  if (files.length === 0) {
+    return null;
+  }
   // Query the database for existing files
   const existingFiles = getFiles(scanId);
 
@@ -95,6 +101,9 @@ export const insertFiles = (scanId: number, files: ImageWithDefinitions[]) => {
 };
 
 export const getFiles = (scanId: number) => {
+  if (scanId === null) {
+    return [];
+  }
   const stmt = db.prepare('SELECT * FROM files WHERE scan_id = ?');
   const result = stmt.all(scanId);
   return result.map((raw) => {

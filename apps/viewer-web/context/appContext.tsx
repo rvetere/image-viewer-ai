@@ -5,7 +5,6 @@ import type {
   ReactNode,
 } from 'react';
 import { createContext, useContext, useMemo, useReducer } from 'react';
-import { useElectronFileSystem } from '../hooks/useElectronFileSystem';
 import { ImageWithDefinitions } from '../lib/types';
 
 export interface IAppContext {
@@ -17,13 +16,11 @@ export interface IAppContext {
   browsingDir: string | null;
   originalData: ImageWithDefinitions[];
   browsingData: ImageWithDefinitions[];
-  favorites: string[];
 }
 
 export interface IAppOperationsContext {
   setWorking: (working: boolean) => void;
   setBrowsingData: (browsingData: ImageWithDefinitions[]) => void;
-  setFavorites: (favorites: string[]) => void;
   resetSelected: () => void;
   setSelected: (selected: string[]) => void;
   setSubSelected: (subSelected: string[]) => void;
@@ -41,7 +38,6 @@ export type AppContextAction =
   | { type: 'SET_WORKING'; payload: boolean }
   | { type: 'SET_BROWSING_DATA'; payload: ImageWithDefinitions[] }
   | { type: 'BROWSE'; payload: { dir: string; imagePaths: string[] } }
-  | { type: 'SET_FAVORITES'; payload: string[] }
   | { type: 'SET_PROGRESS'; payload: number }
   | { type: 'SET_SELECTED'; payload: string[] }
   | { type: 'SET_SUB_SELECTED'; payload: string[] }
@@ -54,7 +50,6 @@ const initialState: IAppContext = {
   browsingDir: null,
   originalData: [],
   browsingData: [],
-  favorites: [],
   progress: 0,
   selected: [],
   subSelected: [],
@@ -125,13 +120,6 @@ function appContextReducer(
       };
       return newState;
     }
-    case 'SET_FAVORITES': {
-      const newState: IAppContext = {
-        ...state,
-        favorites: action.payload,
-      };
-      return newState;
-    }
     case 'SET_PROGRESS': {
       return { ...state, progress: action.payload };
     }
@@ -149,9 +137,7 @@ export const AppContextProvider: FunctionComponent<{
 }> = ({ children }) => {
   const [state, dispatch] = useReducer(appContextReducer, initialState);
 
-  useElectronFileSystem(state, dispatch);
-
-  const { browsingData, favorites, selectStartIndex } = state;
+  const { browsingData, selectStartIndex } = state;
 
   const operations = useMemo(
     () => ({
@@ -186,8 +172,6 @@ export const AppContextProvider: FunctionComponent<{
         dispatch({ type: 'SET_WORKING', payload: working }),
       setBrowsingData: (browsingData: ImageWithDefinitions[]) =>
         dispatch({ type: 'SET_BROWSING_DATA', payload: browsingData }),
-      setFavorites: (favorites: string[]) =>
-        dispatch({ type: 'SET_FAVORITES', payload: favorites }),
       handleBrowse: () => {
         dispatch({ type: 'SET_WORKING', payload: true });
         console.log(
@@ -210,20 +194,10 @@ export const AppContextProvider: FunctionComponent<{
       },
       handleFavorite:
         (image: ImageWithDefinitions) =>
-        (event: ChangeEvent<HTMLInputElement>) => {
-          const { checked } = event.target;
-          window.electron.updateFileFavorite(image.id, checked);
-          // const exists = favorites.includes(image.src);
-          // if (exists) {
-          //   const newFavorites = favorites.filter((src) => src !== image.src);
-          //   dispatch({ type: 'SET_FAVORITES', payload: newFavorites });
-          // } else {
-          //   const newFavorites = [...favorites, image.src];
-          //   dispatch({ type: 'SET_FAVORITES', payload: newFavorites });
-          // }
-        },
+        (event: ChangeEvent<HTMLInputElement>) =>
+          window.electron.updateFileFavorite(image.id, event.target.checked),
     }),
-    [browsingData, favorites, selectStartIndex]
+    [browsingData, selectStartIndex]
   );
 
   return (

@@ -7,13 +7,10 @@ export const useFilterLogic = (
   state: IFilterContext,
   dispatch: Dispatch<FilterContextAction>
 ) => {
-  const { originalData, favorites } = useAppContext();
+  const { originalData } = useAppContext();
   const { setBrowsingData } = useAppOperations();
 
-  const { filterFn, sortWithFilterFn } = useFilterAndSort({
-    favorites,
-    uiState: state,
-  });
+  const { filterFn, sortWithFilterFn } = useFilterAndSort(state);
 
   const { filter, format } = state;
   const [lastFilter, setLastFilter] = useState(filter);
@@ -70,15 +67,7 @@ export const useFilterLogic = (
   ]);
 };
 
-type UseFilterAndSortParams = {
-  favorites: string[];
-  uiState: IFilterContext;
-};
-
-const useFilterAndSort = ({
-  favorites,
-  uiState: { filter, format, onlyFaves },
-}: UseFilterAndSortParams) => {
+const useFilterAndSort = ({ filter, format, onlyFaves }: IFilterContext) => {
   const filterFormat = useCallback(
     (image) => {
       if (format === 'all') {
@@ -109,7 +98,7 @@ const useFilterAndSort = ({
 
   const filterFn = useCallback(
     (image: ImageWithDefinitions) => {
-      const withOnlyFave = onlyFaves ? favorites.includes(image.src) : true;
+      const withOnlyFave = onlyFaves ? image.favorite : true;
       const isSexy = image.nudenet?.sexy || image.nudenet?.nude;
       if (filter === 'all') {
         return true && filterFormat(image) && withOnlyFave;
@@ -136,7 +125,7 @@ const useFilterAndSort = ({
         return false;
       }
     },
-    [filter, filterFormat, filterNudity, onlyFaves, favorites]
+    [filter, filterFormat, filterNudity, onlyFaves]
   );
 
   const sortWithFilterFn = useCallback(

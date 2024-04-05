@@ -26,42 +26,45 @@ export const browse = async (_e) => {
   console.log({ appDataPath });
 
   const batchSize = Math.ceil(files.length / WORKER_AMOUNT);
-  console.log(
-    `🧵 Create worker pool of ${WORKER_AMOUNT}, each will scan ~${batchSize} files..`
-  );
-  const batchedFiles = [];
-  for (let i = 0; i < files.length; i += batchSize) {
-    batchedFiles.push(files.slice(i, i + batchSize));
+  if (batchSize > 0) {
+    console.log(
+      `🧵 Create worker pool of ${WORKER_AMOUNT}, each will scan ~${batchSize} files..`
+    );
+    const batchedFiles = [];
+    for (let i = 0; i < files.length; i += batchSize) {
+      batchedFiles.push(files.slice(i, i + batchSize));
+    }
+
+    const staticPool = new StaticPool({
+      size: WORKER_AMOUNT,
+      task: resolve(
+        __dirname,
+        '../../libs/worker-thread/src/lib/readImageFileDimensions.js'
+      ),
+    });
+
+    const allWorkers = batchedFiles.map((batch) =>
+      staticPool.exec({
+        files: batch,
+        appDataPath,
+      })
+    );
+    const allResults = await Promise.all(allWorkers);
+    const finalEntries = allResults.flat() as ImageWithDefinitions[];
+
+    staticPool.destroy();
+
+    const dir = path.filePaths[0];
+    if (dir) {
+      const existingScan = getScanByDirectory(dir);
+      const scanId = existingScan ? existingScan.id : insertScans([dir]);
+      console.log('Processed all images', {
+        filesWithDimensions: finalEntries.length,
+        existingScan: existingScan ? existingScan.id : 'not existing',
+      });
+      return [path.filePaths[0], finalEntries, scanId];
+    }
   }
 
-  const staticPool = new StaticPool({
-    size: WORKER_AMOUNT,
-    task: resolve(
-      __dirname,
-      '../../libs/worker-thread/src/lib/readImageFileDimensions.js'
-    ),
-  });
-
-  const allWorkers = batchedFiles.map((batch) =>
-    staticPool.exec({
-      files: batch,
-      appDataPath,
-    })
-  );
-  const allResults = await Promise.all(allWorkers);
-  const finalEntries = allResults.flat() as ImageWithDefinitions[];
-
-  staticPool.destroy();
-
-  const existingScan = getScanByDirectory(path.filePaths[0]);
-  const scanId = existingScan
-    ? existingScan.id
-    : insertScans([path.filePaths[0]]);
-
-  console.log('Processed all images', {
-    filesWithDimensions: finalEntries.length,
-    existingScan: existingScan ? existingScan.id : 'not existing',
-  });
-
-  return [path.filePaths[0], finalEntries, scanId];
+  return [null, [], null];
 };

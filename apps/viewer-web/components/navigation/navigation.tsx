@@ -7,6 +7,7 @@ import {
 } from '../../context/filterContext';
 import { ImageFilter } from '../../lib/types';
 import styles from './navigation.module.css';
+import { Button } from '../../@/components/button';
 
 export const Navigation: FunctionComponent = () => {
   const { browsingData, originalData } = useAppContext();
@@ -59,8 +60,19 @@ export const Navigation: FunctionComponent = () => {
   }, [originalData]);
 
   return (
+    <div className="flex items-center space-x-4">
+      <Button>Button</Button>
+      <Button>Button</Button>
+      <Button>Button</Button>
+      <Button>Button</Button>
+    </div>
+  );
+  return (
     <div className={styles.navigation}>
-      <button onClick={handleBrowse}>Browse</button>
+      <button className="p-4 bg-blue-500 text-white" onClick={handleBrowse}>
+        Browse
+      </button>
+
       <div className={styles.counter}>{browsingData.length}x</div>
       <div className={styles.mainFunctions}>
         <button
