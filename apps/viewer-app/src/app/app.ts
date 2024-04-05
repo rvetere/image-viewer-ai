@@ -1,17 +1,13 @@
-import { BrowserWindow, app, dialog, ipcMain, screen, shell } from 'electron';
-import * as fg from 'fast-glob';
-import * as fs from 'fs';
-import { StaticPool } from 'node-worker-threads-pool-ts';
-import { cpus } from 'os';
-import { join, resolve } from 'path';
+import { BrowserWindow, ipcMain, screen, shell } from 'electron';
+import { join } from 'path';
 import { format } from 'url';
 import { environment } from '../environments/environment';
 import { rendererAppName, rendererAppPort } from './constants';
+import { browse } from './lib/browse';
+import { initDb } from '../data/db';
 // const Store = require('electron-store');
 
 // const store = new Store();
-
-const WORKER_AMOUNT = cpus().length > 3 ? cpus().length - 2 : 1;
 
 export default class App {
   // Keep a global reference of the window object, if you don't, the window will
@@ -55,6 +51,10 @@ export default class App {
     // Some APIs can only be used after this event occurs.
     App.initMainWindow();
     App.loadMainWindow();
+    App.initDatabase();
+  }
+  private static initDatabase() {
+    initDb(App.application.getPath('userData'));
   }
 
   private static onActivate() {
@@ -83,57 +83,7 @@ export default class App {
       },
     });
     App.mainWindow.webContents.openDevTools();
-    ipcMain.handle('browse', async (e) => {
-      const path = await dialog.showOpenDialog({
-        properties: ['openDirectory'],
-      });
-
-      const pattern =
-        `${path.filePaths[0]}\\**\\*.(jpg|jpeg|png|webp|gif)`.replace(
-          /\\/gi,
-          '/'
-        );
-
-      const files = await fg([pattern], { dot: false });
-      console.log(`Found ${files.length} image files`);
-      const appDataPath = app.getPath('userData');
-      fs.mkdirSync(`${appDataPath}/image-viewer/resized`, { recursive: true });
-      console.log({ appDataPath });
-
-      const batchSize = Math.ceil(files.length / WORKER_AMOUNT);
-      console.log(
-        `🧵 Create worker pool of ${WORKER_AMOUNT}, each will scan ~${batchSize} files..`
-      );
-      const batchedFiles = [];
-      for (let i = 0; i < files.length; i += batchSize) {
-        batchedFiles.push(files.slice(i, i + batchSize));
-      }
-
-      const staticPool = new StaticPool({
-        size: WORKER_AMOUNT,
-        task: resolve(
-          __dirname,
-          '../../libs/worker-thread/src/lib/readImageFileDimensions.js'
-        ),
-      });
-
-      const allWorkers = batchedFiles.map((batch) =>
-        staticPool.exec({
-          files: batch,
-          appDataPath,
-        })
-      );
-      const allResults = await Promise.all(allWorkers);
-      const finalEntries = allResults.flat();
-
-      staticPool.destroy();
-
-      console.log('Processed all images', {
-        filesWithDimensions: finalEntries.length,
-      });
-
-      return [path.filePaths[0], finalEntries, appDataPath];
-    });
+    ipcMain.handle('browse', browse);
     App.mainWindow.setMenu(null);
     App.mainWindow.center();
 

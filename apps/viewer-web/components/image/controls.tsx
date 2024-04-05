@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import { Dispatch, FunctionComponent, SetStateAction } from 'react';
+import { Dispatch, FunctionComponent, SetStateAction, useState } from 'react';
 import { useAppContext, useAppOperations } from '../../context/appContext';
 import { ImageWithDefinitions } from '../../lib/types';
 import styles from './controls.module.css';
@@ -15,8 +15,6 @@ export const Controls: FunctionComponent<IControlsProps> = ({
   showOriginal,
   setShowOriginal,
 }) => {
-  const { favorites } = useAppContext();
-  const { handleFavorite } = useAppOperations();
   return (
     <>
       <button
@@ -28,13 +26,7 @@ export const Controls: FunctionComponent<IControlsProps> = ({
         Spot
       </button>
 
-      <button
-        title="Like"
-        onClick={handleFavorite(image)}
-        className={styles.favorite}
-      >
-        {favorites.includes(image.src) ? '💜' : '🤍'}
-      </button>
+      <FavoriteCheckbox image={image} />
 
       {!showOriginal && (
         <div className={classNames(styles.text, styles.nudenet)}>
@@ -48,5 +40,28 @@ export const Controls: FunctionComponent<IControlsProps> = ({
         </div>
       )}
     </>
+  );
+};
+
+const FavoriteCheckbox: FunctionComponent<{ image: ImageWithDefinitions }> = ({
+  image,
+}) => {
+  const { favorites } = useAppContext();
+  const { handleFavorite } = useAppOperations();
+  const [isChecked, setIsChecked] = useState<boolean>(image.favorite);
+  const changeHandler = handleFavorite(image);
+  return (
+    <label className={styles.favoriteLabel}>
+      {favorites.includes(image.src) ? '💜' : '🤍'}
+      <input
+        type="checkbox"
+        checked={isChecked}
+        onChange={(e) => {
+          setIsChecked(e.target.checked);
+          changeHandler(e);
+        }}
+        className={styles.favorite}
+      />
+    </label>
   );
 };

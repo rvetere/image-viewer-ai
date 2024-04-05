@@ -19,30 +19,30 @@ export const Sidebar: FunctionComponent = () => {
     }
   };
   const handleDeleteFinal = () => {
-    // @ts-expect-error bla
-    window.electron.deleteImage(subSelected).then((results) => {
-      const newSubSelected = subSelected.filter(
-        (src) => !subSelected.includes(src)
-      );
-      setSubSelected(newSubSelected);
-      const newSelected = selected.filter((src) => !subSelected.includes(src));
-      setSelected(newSelected);
-      const newImages = browsingData.filter(
-        (image) => !subSelected.includes(image.src)
-      );
-      setBrowsingData(newImages);
-      // @ts-expect-error bla
-      window.electron
-        .storeData(`${hashCode(browsingDir)}.json`, JSON.stringify(newImages))
-        .then((results) => {
-          console.log('Stored data', { results });
-        });
-    });
+    // window.electron.deleteImage(subSelected).then((results) => {
+    //   const newSubSelected = subSelected.filter(
+    //     (src) => !subSelected.includes(src)
+    //   );
+    //   setSubSelected(newSubSelected);
+    //   const newSelected = selected.filter((src) => !subSelected.includes(src));
+    //   setSelected(newSelected);
+    //   const newImages = browsingData.filter(
+    //     (image) => !subSelected.includes(image.src)
+    //   );
+    //   setBrowsingData(newImages);
+    //   window.electron
+    //     .storeData(`${hashCode(browsingDir)}.json`, JSON.stringify(newImages))
+    //     .then((results) => {
+    //       console.log('Stored data', { results });
+    //     });
+    // });
   };
+
   const clearSelection = () => {
     setSelected([]);
     setSubSelected([]);
   };
+
   return (
     <div className={styles.sidebar}>
       <div>

@@ -6,9 +6,13 @@ contextBridge.exposeInMainWorld('electron', {
   browse: () => ipcRenderer.invoke('browse'),
   classifyImages: (paths: string[], existingDefs: ImageWithDefinitions[]) =>
     ipcRenderer.invoke('classify-images', paths, existingDefs),
+  insertScans: (directories: string[]) =>
+    ipcRenderer.invoke('insert-scans', directories),
+  insertFiles: (scanId: number, files: ImageWithDefinitions[]) =>
+    ipcRenderer.invoke('insert-files', scanId, files),
+  updateFileFavorite: (id: number, favorite: boolean) =>
+    ipcRenderer.invoke('update-file-favorite', id, favorite),
+  getFiles: (scanId: number) => ipcRenderer.invoke('get-files', scanId),
   deleteImage: (paths: string[]) => ipcRenderer.invoke('delete-image', paths),
-  storeData: (path: string, content: string) =>
-    ipcRenderer.invoke('store-data', path, content),
-  getData: (path: string) => ipcRenderer.invoke('get-data', path),
   platform: process.platform,
 });

@@ -9,7 +9,7 @@ export const Browser: FunctionComponent = () => {
     <div className={styles.browsingData}>
       {browsingData.map((image, index) => {
         return (
-          <LocalImage key={`image-${image.src}`} index={index} image={image} />
+          <LocalImage key={`image-${image.id}`} index={index} image={image} />
         );
       })}
     </div>

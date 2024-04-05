@@ -1,9 +1,11 @@
-import type { FunctionComponent, MouseEvent, ReactNode } from 'react';
+import type {
+  ChangeEvent,
+  FunctionComponent,
+  MouseEvent,
+  ReactNode,
+} from 'react';
 import { createContext, useContext, useMemo, useReducer } from 'react';
 import { useElectronFileSystem } from '../hooks/useElectronFileSystem';
-import { hashCode } from '../lib/hashCode';
-import { loadDataFromFileSystem } from '../lib/loadDataFromFileSystem';
-import { storeDataOnFileSystem } from '../lib/storeDataOnFileSystem';
 import { ImageWithDefinitions } from '../lib/types';
 
 export interface IAppContext {
@@ -30,7 +32,7 @@ export interface IAppOperationsContext {
   ) => (event: MouseEvent<HTMLImageElement>) => void;
   handleFavorite: (
     image: ImageWithDefinitions
-  ) => (event: MouseEvent<HTMLButtonElement>) => void;
+  ) => (event: ChangeEvent<HTMLInputElement>) => void;
   handleBrowse: () => void;
   handleReset: () => void;
 }
@@ -188,60 +190,37 @@ export const AppContextProvider: FunctionComponent<{
         dispatch({ type: 'SET_FAVORITES', payload: favorites }),
       handleBrowse: () => {
         dispatch({ type: 'SET_WORKING', payload: true });
-        console.log('🚀 Browse folder..');
-        // @ts-expect-error bla
-        window.electron.browse().then(
-          async ([dir, imagePaths, appDataPath]: [
-            dir: string,
-            appDataPath: string,
-            imagePaths: {
-              src: string;
-              size: {
-                width: number;
-                height: number;
-              };
-              resizedDataUrl?: string;
-            }[]
-          ]) => {
-            const dataFilePath = `${hashCode(dir)}.json`;
-            console.log('✅ All images in folder successfully prepared..', {
-              dir,
-              len: imagePaths.length,
-            });
-            const existing = await loadDataFromFileSystem(dataFilePath);
-            const existingDefs = (existing ?? []) as ImageWithDefinitions[];
-
-            console.log('🚀 Classify images now, multi-threaded..');
-            // @ts-expect-error bla
-            window.electron
-              .classifyImages(imagePaths, existingDefs)
-              .then((classifiedImages) => {
-                console.log('✅ Got all image defs..', {
-                  classifiedImages,
-                });
-                dispatch({
-                  type: 'SET_BROWSING_DATA',
-                  payload: classifiedImages,
-                });
-                storeDataOnFileSystem(
-                  dataFilePath,
-                  JSON.stringify(classifiedImages)
-                );
-              });
-          }
+        console.log(
+          '🚀 Browse directory, filter for images and resize them if needed..'
         );
+        window.electron.browse().then(async ([dir, imagePaths, scanId]) => {
+          console.log('🚀 Classify images now, multi-threaded..');
+          const existingFiles = await window.electron.getFiles(scanId);
+          const classifiedImages = await window.electron.classifyImages(
+            imagePaths,
+            existingFiles
+          );
+          dispatch({
+            type: 'SET_BROWSING_DATA',
+            payload: classifiedImages,
+          });
+          window.electron.insertFiles(scanId, classifiedImages);
+          console.log(`✅ Loaded ${classifiedImages.length} files`, { dir });
+        });
       },
       handleFavorite:
         (image: ImageWithDefinitions) =>
-        (_event: MouseEvent<HTMLButtonElement>) => {
-          const exists = favorites.includes(image.src);
-          if (exists) {
-            const newFavorites = favorites.filter((src) => src !== image.src);
-            dispatch({ type: 'SET_FAVORITES', payload: newFavorites });
-          } else {
-            const newFavorites = [...favorites, image.src];
-            dispatch({ type: 'SET_FAVORITES', payload: newFavorites });
-          }
+        (event: ChangeEvent<HTMLInputElement>) => {
+          const { checked } = event.target;
+          window.electron.updateFileFavorite(image.id, checked);
+          // const exists = favorites.includes(image.src);
+          // if (exists) {
+          //   const newFavorites = favorites.filter((src) => src !== image.src);
+          //   dispatch({ type: 'SET_FAVORITES', payload: newFavorites });
+          // } else {
+          //   const newFavorites = [...favorites, image.src];
+          //   dispatch({ type: 'SET_FAVORITES', payload: newFavorites });
+          // }
         },
     }),
     [browsingData, favorites, selectStartIndex]

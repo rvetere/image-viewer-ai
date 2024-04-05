@@ -8,6 +8,12 @@ import * as fs from 'fs';
 import { environment } from '../../environments/environment';
 import { classifyImages } from '../lib/classifyImages';
 import { sleep } from '../lib/sleep';
+import {
+  getFiles,
+  insertFiles,
+  insertScans,
+  updateFileFavorite,
+} from '../../data/db';
 
 export default class ElectronEvents {
   static bootstrapElectronEvents(): Electron.IpcMain {
@@ -48,6 +54,22 @@ ipcMain.handle('classify-images', async (event, paths, existingDefs) => {
   return result;
 });
 
+ipcMain.handle('insert-scans', (event, directories) => {
+  return insertScans(directories);
+});
+
+ipcMain.handle('insert-files', (event, scanId, files) => {
+  return insertFiles(scanId, files);
+});
+
+ipcMain.handle('get-files', (event, scanId) => {
+  return getFiles(scanId);
+});
+
+ipcMain.handle('update-file-favorite', (event, id, favorite) => {
+  return updateFileFavorite(id, favorite);
+});
+
 ipcMain.handle('delete-image', (event, paths) => {
   paths.forEach((path) => {
     console.log('Deleting image: ', path.trim());
@@ -61,24 +83,6 @@ ipcMain.handle('delete-image', (event, paths) => {
     }
   });
   return true;
-});
-
-ipcMain.handle('store-data', (event, path, content) => {
-  const appDataPath = app.getPath('userData');
-  const targetPath = `${appDataPath}/image-viewer/${path}`;
-  console.log({ targetPath });
-
-  fs.writeFileSync(`${targetPath}`, content);
-  return true;
-});
-
-ipcMain.handle('get-data', (event, path) => {
-  const appDataPath = app.getPath('userData');
-  const targetPath = `${appDataPath}/image-viewer/${path}`;
-  if (fs.existsSync(targetPath)) {
-    return fs.readFileSync(`${targetPath}`, 'utf8');
-  }
-  return null;
 });
 
 // Handle App termination

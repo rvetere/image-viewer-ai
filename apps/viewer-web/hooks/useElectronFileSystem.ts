@@ -1,7 +1,5 @@
-import { Dispatch, useCallback, useEffect } from 'react';
+import { Dispatch, useEffect } from 'react';
 import { AppContextAction } from '../context/appContext';
-import { hashCode } from '../lib/hashCode';
-import { NudityResponse } from '../lib/types';
 
 type UseFilterAndSortParams = {
   browsingDir: string;

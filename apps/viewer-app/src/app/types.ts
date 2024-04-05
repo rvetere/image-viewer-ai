@@ -5,6 +5,8 @@ export type BrowseResponse = {
 };
 
 export type ImageWithDefinitions = BrowseResponse & {
+  id?: number;
+  favorite: boolean;
   nudenet?: {
     input: {
       file: any;

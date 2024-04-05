@@ -1,13 +1,14 @@
 import { StaticPool } from 'node-worker-threads-pool-ts';
 import { cpus } from 'os';
 import { resolve } from 'path';
+import { ImageWithDefinitions } from '../types';
 
 const WORKER_AMOUNT = cpus().length > 3 ? cpus().length - 2 : 1;
 
 export const classifyImages = async (paths: string[]) => {
   const batchSize = Math.ceil(paths.length / WORKER_AMOUNT);
   console.log(
-    `🧵 Create worker pool of ${WORKER_AMOUNT}, each will scan ~${batchSize} files..`
+    `🧵 Create worker pool of ${WORKER_AMOUNT}, each will classify ~${batchSize} image files with tensorflow "nudenet"..`
   );
   const batchedFiles = [];
   for (let i = 0; i < paths.length; i += batchSize) {
@@ -31,5 +32,5 @@ export const classifyImages = async (paths: string[]) => {
   const filesWithNudenet = allResults.flat();
 
   staticPool.destroy();
-  return filesWithNudenet;
+  return filesWithNudenet as ImageWithDefinitions[];
 };
